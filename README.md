@@ -19,7 +19,12 @@ The objective of **Paymates** is to:
 This application targets all households with multiple financially independent residents, mainly college students, to provide ease of managing expenses and purchases. It also targets those who need to track personal versus shared belongings in a household based on who purchased the item.
 
 ### Scope:
-Kavya
+- Sign up/Log in
+ Create a "Room" that can be shared with roommate(s)
+- Add an expense
+- Add a budget
+- Log payments
+- Search for payments by person, expense, or budget; purchasers are the owners of the purchase
 
 ### Future Scope:
 Aagam
