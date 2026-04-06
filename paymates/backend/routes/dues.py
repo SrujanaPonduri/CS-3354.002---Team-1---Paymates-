@@ -1,5 +1,6 @@
 # routes/dues.py
-# Responsible for: UC06 — Assign Dues for Settlement.
+# Responsible for: UC06 — Assign Dues for Settlement.\
+# Ashwin Avadhanula
 # FR-15: View dues generated from bills.
 # FR-16: View dues generated from shared expenses.
 # FR-21: Filter dues by status (pending / done) and by user.
