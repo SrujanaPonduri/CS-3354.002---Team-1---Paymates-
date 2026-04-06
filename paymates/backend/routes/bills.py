@@ -1,8 +1,9 @@
 # routes/bills.py
 # Responsible for: UC04 — creating and editing itemized bills, calculating
-# Srujana Ponduri - UC04.
+# Srujana Ponduri = UC04. 
 # per-roommate splits (evenly / by_item / fixed_amount), and attaching
 # receipt URLs (FR-14).
+
 
 # Flask imports for defining routes and handling JSON requests/responses
 from flask import Blueprint, jsonify, request
