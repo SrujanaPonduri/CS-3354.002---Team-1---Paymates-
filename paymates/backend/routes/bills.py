@@ -1,8 +1,10 @@
 # routes/bills.py
 # Responsible for: UC04 — creating and editing itemized bills, calculating
+# Srujana Ponduri 
 # per-roommate splits (evenly / by_item / fixed_amount), and attaching
 # receipt URLs (FR-14).
 
+# Flask imports for defining routes and handling JSON requests/responses
 from flask import Blueprint, jsonify, request
 from mock_db import DB, new_id
 
@@ -13,6 +15,7 @@ bills_bp = Blueprint("bills", __name__)
 # Helpers
 # ---------------------------------------------------------------------------
 
+# Takes a list of items and a tax amount and calculates the total price. 
 def _calc_total(items: list, tax: float) -> float:
     """Sum all line-item subtotals and add tax."""
     subtotal = sum(
@@ -21,7 +24,7 @@ def _calc_total(items: list, tax: float) -> float:
     )
     return round(subtotal + float(tax or 0), 2)
 
-
+# This method takes a bill and figures out how much each person owes based on the split parameters. 
 def _build_dues(bill_id: str, split_type: str, items: list, total: float,
                 assigned_roommates: list, fixed_amounts: dict, date: str) -> list:
     """Return a list of due records based on the split strategy.
@@ -40,7 +43,7 @@ def _build_dues(bill_id: str, split_type: str, items: list, total: float,
     """
     dues = []
 
-    if split_type == "evenly":
+    if split_type == "evenly": # if bill is split evenly. 
         per_person = round(total / len(assigned_roommates), 2)
         for uid in assigned_roommates:
             due_id = new_id()
@@ -55,7 +58,7 @@ def _build_dues(bill_id: str, split_type: str, items: list, total: float,
             DB["dues"][due_id] = due
             dues.append(due)
 
-    elif split_type == "by_item":
+    elif split_type == "by_item": # if bill is split by item ownership. 
         user_totals: dict = {uid: 0.0 for uid in assigned_roommates}
         for item in items:
             owner_ids = item.get("owner_ids", [])
@@ -80,7 +83,7 @@ def _build_dues(bill_id: str, split_type: str, items: list, total: float,
             DB["dues"][due_id] = due
             dues.append(due)
 
-    elif split_type == "fixed_amount":
+    elif split_type == "fixed_amount": # if bill is split by fized amounts. 
         # Validate that fixed amounts sum to total (within $0.01 tolerance)
         provided_sum = round(sum(float(v) for v in fixed_amounts.values()), 2)
         if abs(provided_sum - total) > 0.01:
@@ -102,7 +105,7 @@ def _build_dues(bill_id: str, split_type: str, items: list, total: float,
 
     return dues
 
-
+# This method deletes all pending dues related to a bill. 
 def _delete_pending_dues(bill_id: str):
     """Remove all *pending* due records associated with bill_id."""
     to_remove = [
@@ -117,6 +120,7 @@ def _delete_pending_dues(bill_id: str):
 # UC04-FR06 — List bills for a home
 # ---------------------------------------------------------------------------
 # GET /api/homes/<home_id>/bills
+# Returns all bills belonging to the home, sorted newest-first.
 @bills_bp.route("/homes/<home_id>/bills", methods=["GET"])
 def list_bills(home_id):
     """UC04-FR06: Return all bills belonging to a home, sorted newest-first.
@@ -140,6 +144,7 @@ def list_bills(home_id):
 # POST /api/bills
 # Body: { creator_id, title, date, category, split_type, items, tax,
 #         assigned_roommates, fixed_amounts (optional), home_id }
+# Returns 201 with the created bill and generated dues on success.
 @bills_bp.route("/bills", methods=["POST"])
 def create_bill():
     """UC04-FR07: Create a new itemized bill and generate per-roommate dues.
@@ -208,6 +213,7 @@ def create_bill():
 # ---------------------------------------------------------------------------
 # PUT /api/bills/<bill_id>
 # Body: partial update fields; must include editor_id
+# If items, tax, or split_type are updated, all pending dues are deleted and
 @bills_bp.route("/bills/<bill_id>", methods=["PUT"])
 def update_bill(bill_id):
     """UC04-FR08: Edit a bill's fields and recalculate pending dues.
@@ -258,6 +264,7 @@ def update_bill(bill_id):
 # ---------------------------------------------------------------------------
 # POST /api/bills/<bill_id>/receipt
 # Body: { receipt_url }
+# Simulates image upload (FR-14) — stores a URL string only, no real file
 @bills_bp.route("/bills/<bill_id>/receipt", methods=["POST"])
 def attach_receipt(bill_id):
     """UC04-FR14: Save a receipt URL on a bill.

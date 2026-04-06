@@ -1,20 +1,24 @@
 # routes/auth.py
 # Responsible for: UC01 — user registration (sign-up), login, magic-link token
+# Joseph Botros 
 # verification, and account-setup (profile creation after first login).
 
-import time
-import secrets
+import time # for token expiration timestamps
+import secrets # for secure token generation
 
-from flask import Blueprint, jsonify, request
-from mock_db import DB, new_id
+from flask import Blueprint, jsonify, request # for defining routes and handling JSON requests/responses
+from mock_db import DB, new_id # mock in-memory database and ID generator
 
-auth_bp = Blueprint("auth", __name__)
+auth_bp = Blueprint("auth", __name__) # Blueprint for auth-related routes, to be registered in the main app
 
 
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
 
+# Loops through every user in DB["users"] and returns the first user whose email matches. 
+# if no user is found, returns none. 
+# This method is also used to check if an user is already registered in the app. 
 def _find_user_by_email(email: str):
     """Return the user record matching *email*, or None."""
     return next(
@@ -22,7 +26,8 @@ def _find_user_by_email(email: str):
         None,
     )
 
-
+# Generates 32 random buytes encoded as a URL-safe string which is sent to the user for verification. 
+# This is what stimulates the magic-link that the user receives when he/she tries to log in. 
 def _generate_token(email: str) -> str:
     """Create a URL-safe token, store it in DB["tokens"], and return it.
 
@@ -40,7 +45,8 @@ def _generate_token(email: str) -> str:
     }
     return token
 
-
+# Checks if the token exists in the DB and if it has not expired. If valid, returns the token record (which includes the associated email and expiration timestamp). 
+# If the token is missing or has expired, returns None. Expired tokens are also cleaned up from the DB.
 def _verify_token(token: str):
     """Return the token record if valid, or None if missing / expired."""
     record = DB["tokens"].get(token)
@@ -166,7 +172,6 @@ def setup():
 
     if _find_user_by_email(email):
         return jsonify({"error": "Account already set up for this email"}), 409
-
     user_id = new_id()
     user = {
         "id": user_id,

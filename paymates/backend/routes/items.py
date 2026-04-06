@@ -1,6 +1,8 @@
 # routes/items.py
 # Responsible for: UC07 (shared inventory — list, add, retrieve items) and
 # UC08 (item ownership — add or remove owner claims on an item).
+# UC08 - Srujana Ponduri 
+# UC07 - Kavya Seenuvasan 
 
 from flask import Blueprint, jsonify, request
 from mock_db import DB, new_id
@@ -134,6 +136,7 @@ def get_item(item_id):
 # ---------------------------------------------------------------------------
 # POST /api/items/<item_id>/owners
 # Body: { requester_id, new_owner_id }
+# Allows an existing owner to add another user as a co-owner of the item.
 @items_bp.route("/items/<item_id>/owners", methods=["POST"])
 def add_owner(item_id):
     """UC08-FR18: Allow an existing owner to add another user as a co-owner.
@@ -172,6 +175,7 @@ def add_owner(item_id):
 # ---------------------------------------------------------------------------
 # DELETE /api/items/<item_id>/owners/<owner_id>
 # Body: { requester_id }
+# Allows an existing owner to remove another owner from the item, as long as one user remainds after deletion 
 @items_bp.route("/items/<item_id>/owners/<owner_id>", methods=["DELETE"])
 def remove_owner(item_id, owner_id):
     """UC08-FR19: Remove a co-owner from an item.

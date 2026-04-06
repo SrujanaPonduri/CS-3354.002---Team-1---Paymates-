@@ -1,14 +1,17 @@
 # routes/roommates.py
 # Responsible for: UC03 — managing roommate membership within a home.
+# Joseph Botros
 # Covers inviting a new roommate, accepting an invite, listing current
 # roommates, and leaving a home.
 
-import time
-import secrets
+import time # for invite expiration timestamps
+import secrets # for secure invite token generation
 
+# Flask imports for defining routes and handling JSON requests/responses
 from flask import Blueprint, jsonify, request
 from mock_db import DB, new_id
 
+# Blueprint for roommate-related routes, to be registered in the main app
 roommates_bp = Blueprint("roommates", __name__)
 
 
@@ -16,16 +19,19 @@ roommates_bp = Blueprint("roommates", __name__)
 # Helper
 # ---------------------------------------------------------------------------
 
+# Helper functions to retrieve home and user records, and to find a user by email.
+# Looks up a home by its ID. Returns the home if found or none otherwise. 
 def _get_home(home_id: str):
     """Return home record or None."""
     return DB["homes"].get(home_id)
 
-
+# Looks up a user by their ID. Returns the user if found or none otherwise.
 def _get_user(user_id: str):
     """Return user record or None."""
     return DB["users"].get(user_id)
 
-
+# Loops through every user in DB["users"] and returns the first user whose email matches.
+# if no user is found, returns none.
 def _find_user_by_email(email: str):
     """Return user record matching email, or None."""
     return next(
