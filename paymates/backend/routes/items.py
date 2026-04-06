@@ -1,7 +1,7 @@
 # routes/items.py
 # Responsible for: UC07 (shared inventory — list, add, retrieve items) and
 # UC08 (item ownership — add or remove owner claims on an item).
-# UC08 - Srujana Ponduri 
+# UC08 - Srujana Ponduri  
 # UC07 - Kavya Seenuvasan 
 
 from flask import Blueprint, jsonify, request
