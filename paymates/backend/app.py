@@ -12,6 +12,7 @@ from routes.bills import bills_bp
 from routes.expenses import expenses_bp
 from routes.items import items_bp
 from routes.dues import dues_bp
+from routes.budgets import budgets_bp
 
 app = Flask(__name__)
 
@@ -28,7 +29,7 @@ app.register_blueprint(bills_bp,     url_prefix="/api")
 app.register_blueprint(expenses_bp,  url_prefix="/api")
 app.register_blueprint(items_bp,     url_prefix="/api")
 app.register_blueprint(dues_bp,      url_prefix="/api")       # UC06 dues
-
+app.register_blueprint(budgets_bp,   url_prefix="/api")
 
 # ---------------------------------------------------------------------------
 # Health check

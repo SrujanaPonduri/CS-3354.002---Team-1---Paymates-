@@ -159,3 +159,45 @@ def get_due(due_id):
     if not due:
         return jsonify({"error": "Due not found"}), 404
     return jsonify({"due": _enrich_due(due)}), 200
+
+
+
+# For budgets.py
+@dues_bp.route("/dues/<due_id>/pay", methods=["POST"])
+def log_payment_with_proof(due_id):
+    """UC09-FR16: Log a payment and attach a proof URL."""
+    due = DB["dues"].get(due_id)
+    if not due:
+        return jsonify({"error": "Due not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    amount_paid = data.get("amount")
+    proof_url = data.get("proof_url", "").strip()
+
+    # UC09 Test Case 3: Validation
+    if not proof_url:
+        return jsonify({"error": "Proof of payment is required"}), 400
+    
+    try:
+        pay_val = float(amount_paid)
+        if pay_val <= 0:
+            return jsonify({"error": "Please enter a valid payment amount"}), 400
+        # UC09 Test Case 2 (Logic for balance check)
+        if pay_val > due["amount"]:
+            return jsonify({"error": "Amount exceeds balance"}), 400
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid amount"}), 400
+
+    # Logic for partial vs full payment
+    due["amount"] = round(due["amount"] - pay_val, 2)
+    due["proof_url"] = proof_url 
+    
+    if due["amount"] <= 0:
+        due["status"] = "done"
+        due["amount"] = 0
+    
+    return jsonify({
+        "message": "Payment logged successfully",
+        "remaining_balance": due["amount"],
+        "status": due["status"]
+    }), 200
