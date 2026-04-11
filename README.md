@@ -36,4 +36,64 @@ Aagam
 - **Data Security** - If a secure method for storing and reading the data for financial info is not built correctly it could lead to a data breach which would endanger users and break their privacy
 - **User Group Creation** - The creation and management of roommate groups to begin the management process is the most important step so any failures in that section will lead to many features being broken and/or non-functional all together
 
+---
 
+## Running the App
+
+### Prerequisites
+- **Python 3.9+**
+- **Node.js 18+** and **npm**
+
+---
+
+### 1. Clone the repository
+
+```bash
+git clone <repo-url>
+cd CS-3354.002---Team-1---Paymates-
+```
+
+---
+
+### 2. Start the Backend (Flask)
+
+```bash
+# Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install -r paymates/backend/requirements.txt
+
+# Run the Flask dev server (port 5001)
+cd paymates/backend
+python app.py
+```
+
+The API will be available at **http://localhost:5001**.  
+You can verify it is running by visiting **http://localhost:5001/api/health** — it should return `{"status": "ok"}`.
+
+---
+
+### 3. Start the Frontend (Vite + React)
+
+Open a **new terminal** in the project root:
+
+```bash
+cd paymates/frontend
+npm install        # only needed the first time
+npm run dev
+```
+
+The app will be available at **http://localhost:5173**.
+
+---
+
+### Quick-start summary
+
+| Terminal | Command | URL |
+|----------|---------|-----|
+| 1 – Backend | `python paymates/backend/app.py` | http://localhost:5001 |
+| 2 – Frontend | `cd paymates/frontend` + `npm run dev` | http://localhost:5173 |
+
+> **Note:** Both servers must be running at the same time for the app to work correctly.
