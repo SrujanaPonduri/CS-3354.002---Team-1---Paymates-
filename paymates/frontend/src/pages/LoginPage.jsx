@@ -26,9 +26,9 @@ export default function LoginPage() {
       // If not found → 404.
       const res = await client.post('/auth/login', { email: email.trim() });
 
-      // Pass both token and the typed email to MagicLinkSentPage via
-      // location.state (not query params — keeps the URL clean).
-      navigate('/magic-link-sent', { state: { token: res.data.token, email } });
+      const nextState = { email: email.trim() };
+      if (res.data.token) nextState.token = res.data.token;
+      navigate('/magic-link-sent', { state: nextState });
     } catch (err) {
       if (err.response?.status === 404) {
         // Email not in DB — guide the user to sign up.
