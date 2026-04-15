@@ -4,9 +4,8 @@
 //
 // Flow:
 //   1. User enters email → POST /api/auth/signup
-//   2. Backend returns a one-time magic-link token (simulates email delivery).
-//   3. Frontend navigates to MagicLinkSentPage, passing { token, email }
-//      via React Router's location.state so no URL query params are exposed.
+//   2. Backend sends a magic-link email (and may return token in dev if configured).
+//   3. Frontend navigates to MagicLinkSentPage with { email } and optional { token }.
 //
 // Error handling:
 //   409 → email already registered (prompt to log in instead)
@@ -39,9 +38,9 @@ export default function SignUpPage() {
       // response body so the grader can see the full flow without an email server.
       const res = await client.post('/auth/signup', { email: email.trim() });
 
-      // Navigate to the simulated "inbox" page.  The token travels via
-      // location.state (not the URL) so it is not bookmarkable or shareable.
-      navigate('/magic-link-sent', { state: { token: res.data.token, email } });
+      const nextState = { email: email.trim() };
+      if (res.data.token) nextState.token = res.data.token;
+      navigate('/magic-link-sent', { state: nextState });
     } catch (err) {
       if (err.response?.status === 409) {
         // Email already in the DB — guide the user to log in instead.
