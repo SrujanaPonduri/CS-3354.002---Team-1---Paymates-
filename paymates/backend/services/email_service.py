@@ -28,8 +28,12 @@ from urllib.parse import urlencode
 logger = logging.getLogger(__name__)
 
 
+# ---------------------------------------------------------------------------
+# Custom Exception
+# ---------------------------------------------------------------------------
+
 class EmailSendError(Exception):
-    """Raised when SMTP delivery fails."""
+    """Raised when SMTP delivery fails — indicates SMTP server rejected the message."""
 
 
 def build_magic_link_url(token: str) -> str:
@@ -41,10 +45,20 @@ def build_magic_link_url(token: str) -> str:
     return f"{base}/magic-link?{q}"
 
 
+# Helper to retrieve the EMAIL_FROM environment variable (sender's email address).
+# Used by _send_smtp to set the From: header; must be set for SMTP delivery.
 def _email_from() -> str:
+    """Return the configured EMAIL_FROM address or empty string if not set."""
     return (os.environ.get("EMAIL_FROM") or "").strip()
 
 
+# ---------------------------------------------------------------------------
+# Console Mode (Local Development)
+# ---------------------------------------------------------------------------
+
+# Used when SMTP_HOST is not configured. Prints the magic link to console
+# and logs it for debugging. Useful for local development and testing without
+# setting up a real SMTP server.
 def _send_console(to_email: str, subject: str, plain: str, magic_url: str) -> None:
     block = (
         f"\n{'=' * 60}\n"
@@ -57,11 +71,23 @@ def _send_console(to_email: str, subject: str, plain: str, magic_url: str) -> No
     logger.info("Magic link (console) for %s — %s", to_email, magic_url)
 
 
+# ---------------------------------------------------------------------------
+# SMTP Mode (Production Email Delivery)
+# ---------------------------------------------------------------------------
+
+# Handles the actual email delivery via SMTP. Supports two connection modes:
+# - SSL: Secure connection from the start (SMTP_SSL, typical on port 465).
+# - TLS: Regular connection upgraded to secure (STARTTLS, typical on port 587).
+# Both modes support optional authentication (SMTP_USER / SMTP_PASSWORD).
+# Raises EmailSendError if the SMTP server rejects the message.
 def _send_smtp(to_email: str, subject: str, plain: str, html: str) -> None:
+    # Validate that EMAIL_FROM is configured; required for SMTP delivery.
     email_from = _email_from()
     if not email_from:
         raise ValueError("EMAIL_FROM is required when SMTP_HOST is set")
 
+    # Load SMTP configuration from environment variables.
+    # Defaults: port=587 (SMTP with STARTTLS), use_tls=true, use_ssl=false.
     host = os.environ["SMTP_HOST"].strip()
     port = int(os.environ.get("SMTP_PORT") or "587")
     user = (os.environ.get("SMTP_USER") or "").strip()
@@ -69,6 +95,7 @@ def _send_smtp(to_email: str, subject: str, plain: str, html: str) -> None:
     use_tls = os.environ.get("SMTP_USE_TLS", "true").lower() in ("1", "true", "yes")
     use_ssl = os.environ.get("SMTP_USE_SSL", "false").lower() in ("1", "true", "yes")
 
+    # Construct the email message with both plain-text and HTML alternatives.
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = email_from
@@ -76,27 +103,37 @@ def _send_smtp(to_email: str, subject: str, plain: str, html: str) -> None:
     msg.set_content(plain)
     msg.add_alternative(html, subtype="html")
 
+    # Attempt delivery via SMTP. Choose SSL or TLS based on configuration.
     try:
+        # SSL mode: secure connection from the start (SMTP_SSL on port 465).
         if use_ssl:
             context = ssl.create_default_context()
             with smtplib.SMTP_SSL(host, port, context=context) as server:
                 if user:
                     server.login(user, password)
                 server.send_message(msg)
+        # TLS mode: start plain, then upgrade with STARTTLS (typical on port 587).
         else:
             with smtplib.SMTP(host, port) as server:
                 server.ehlo()
                 if use_tls:
                     context = ssl.create_default_context()
                     server.starttls(context=context)
-                    server.ehlo()
+                    server.ehlo()  # re-announce capabilities after STARTTLS
                 if user:
                     server.login(user, password)
                 server.send_message(msg)
     except Exception as exc:
+        # Wrap any SMTP errors (timeout, auth failure, rejection, etc.) in EmailSendError.
         raise EmailSendError(f"SMTP error: {exc}") from exc
 
 
+# ---------------------------------------------------------------------------
+# Main Entry Point
+# ---------------------------------------------------------------------------
+
+# Orchestrates magic-link delivery. Composes the email (with context-specific
+# subject/body), then routes to either SMTP or console mode based on configuration.
 def send_magic_link(to_email: str, token: str, *, signup: bool) -> None:
     """
     Deliver a magic link for *to_email* using *token* (already stored server-side).
@@ -104,6 +141,7 @@ def send_magic_link(to_email: str, token: str, *, signup: bool) -> None:
     Raises ValueError for configuration problems, EmailSendError on SMTP failure.
     Console mode never raises for I/O (only ValueError if FRONTEND_BASE_URL missing).
     """
+    # Build the full URL and compose both plain-text and HTML email bodies.
     magic_url = build_magic_link_url(token)
     subject = "Sign in to Paymates" if not signup else "Finish setting up your Paymates account"
     plain = (
@@ -116,6 +154,7 @@ def send_magic_link(to_email: str, token: str, *, signup: bool) -> None:
         f"<p>Or copy this URL:</p><p>{magic_url}</p>"
     )
 
+    # Route to SMTP or console mode based on SMTP_HOST configuration.
     smtp_host = (os.environ.get("SMTP_HOST") or "").strip()
     if smtp_host:
         _send_smtp(to_email, subject, plain, html)

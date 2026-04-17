@@ -1,6 +1,6 @@
 # routes/auth.py
 # Responsible for: UC01 — user registration (sign-up), login, magic-link token
-# Joseph Botros 
+# Joseph Botros and Aagam Shah
 # verification, and account-setup (profile creation after first login).
 
 import os
