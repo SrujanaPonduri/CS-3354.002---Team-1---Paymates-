@@ -1,0 +1,500 @@
+# routes/audit.py
+# Responsible for: UC-12 — Audit Expenses and Budget.
+# Aagam Shah
+#
+# FR-24: Visual representations of expense trends over time.
+# FR-25: Visual comparison of current expenditures against allocated budgets.
+# FR-26: Key financial metrics and summary reports (total spending, top categories).
+# FR-27: Export expense audit reports in CSV / XLSX format.
+# NFR-08: All search/report operations must complete within 2 seconds.
+#
+# Endpoints:
+#   GET  /api/homes/<home_id>/audit/summary    — FR-26 aggregate metrics
+#   GET  /api/homes/<home_id>/audit/trends     — FR-24 daily spending time-series
+#   GET  /api/homes/<home_id>/audit/budget-vs-actual  — FR-25 budget vs spend
+#   GET  /api/homes/<home_id>/audit/export/csv — FR-27 CSV download
+#   GET  /api/homes/<home_id>/audit/export/xlsx— FR-27 XLSX download
+
+import csv
+import io
+from collections import defaultdict
+from datetime import date, timedelta
+from flask import Blueprint, jsonify, request, Response
+from mock_db import DB
+
+audit_bp = Blueprint("audit", __name__)
+
+# ── Budgets in-memory store (FR-04 / FR-05 / FR-06) ─────────────────────────
+# We keep budgets inside mock_db's DB dict under key "budgets".
+# Schema:
+#   {
+#     id            : str
+#     home_id       : str
+#     category      : str
+#     budget_amount : float
+#     month         : int  (1-12)
+#     year          : int
+#     visibility    : str  "private" | "group" | "all"
+#     created_by    : str  user_id
+#   }
+if "budgets" not in DB:
+    DB["budgets"] = {}
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _parse_period(args) -> tuple[str, str]:
+    """Return (start_date, end_date) from query params or sensible defaults.
+
+    Supported ?period= values:
+      this_month, last_month, last_3_months, last_6_months, ytd, custom
+    For custom, caller must also pass ?start_date= and ?end_date=.
+    """
+    period     = (args.get("period") or "this_month").strip().lower()
+    today      = date.today()
+    first_this = today.replace(day=1)
+
+    if period == "this_month":
+        start = first_this.isoformat()
+        end   = today.isoformat()
+    elif period == "last_month":
+        last_month_end   = first_this - timedelta(days=1)
+        last_month_start = last_month_end.replace(day=1)
+        start = last_month_start.isoformat()
+        end   = last_month_end.isoformat()
+    elif period == "last_3_months":
+        start = (today - timedelta(days=90)).isoformat()
+        end   = today.isoformat()
+    elif period == "last_6_months":
+        start = (today - timedelta(days=180)).isoformat()
+        end   = today.isoformat()
+    elif period == "ytd":
+        start = today.replace(month=1, day=1).isoformat()
+        end   = today.isoformat()
+    else:  # custom
+        start = (args.get("start_date") or first_this.isoformat()).strip()
+        end   = (args.get("end_date")   or today.isoformat()).strip()
+
+    return start, end
+
+
+def _bills_in_period(home_id: str, start: str, end: str) -> list[dict]:
+    return [
+        b for b in DB["bills"].values()
+        if b["home_id"] == home_id
+        and start <= b.get("date", "9999") <= end
+    ]
+
+
+def _expenses_in_period(home_id: str, start: str, end: str) -> list[dict]:
+    return [
+        e for e in DB["expenses"].values()
+        if e["home_id"] == home_id
+        and start <= e.get("start_date", "9999") <= end
+    ]
+
+
+def _category_totals(bills: list, expenses: list) -> dict[str, float]:
+    """Sum spend by category across bills and expenses."""
+    totals: dict[str, float] = defaultdict(float)
+    for b in bills:
+        totals[b.get("category") or "Uncategorised"] += b.get("total", 0)
+    for e in expenses:
+        totals[e.get("expense_type") or "Expense"] += e.get("amount", 0)
+    return dict(totals)
+
+
+# ---------------------------------------------------------------------------
+# FR-26 — Aggregate summary metrics
+# ---------------------------------------------------------------------------
+# GET /api/homes/<home_id>/audit/summary
+@audit_bp.route("/homes/<home_id>/audit/summary", methods=["GET"])
+def audit_summary(home_id):
+    """FR-26: Return key financial metrics for the requested period.
+
+    Returns:
+      total_spending      — sum of bill totals + expense amounts
+      total_bills         — count of bills
+      total_expenses      — count of expenses
+      recurring_expenses  — count of recurring expenses
+      top_category        — category with highest spend
+      category_breakdown  — dict of category → total spend
+      period              — { start_date, end_date }
+    """
+    if home_id not in DB["homes"]:
+        return jsonify({"error": "Home not found"}), 404
+
+    start, end  = _parse_period(request.args)
+    bills       = _bills_in_period(home_id, start, end)
+    expenses    = _expenses_in_period(home_id, start, end)
+
+    cat_totals  = _category_totals(bills, expenses)
+    top_cat     = max(cat_totals, key=cat_totals.get) if cat_totals else None
+    total_spend = round(sum(cat_totals.values()), 2)
+
+    # Sort breakdown by value descending for the frontend chart
+    sorted_breakdown = dict(
+        sorted(cat_totals.items(), key=lambda kv: kv[1], reverse=True)
+    )
+
+    recurring_count = sum(
+        1 for e in expenses if e.get("expense_type") == "recurring"
+    )
+
+    return jsonify({
+        "total_spending":     total_spend,
+        "total_bills":        len(bills),
+        "total_expenses":     len(expenses),
+        "recurring_expenses": recurring_count,
+        "top_category":       top_cat,
+        "top_category_amount": round(cat_totals.get(top_cat, 0), 2) if top_cat else 0,
+        "top_category_pct":   round(cat_totals.get(top_cat, 0) / total_spend * 100, 1)
+                               if total_spend else 0,
+        "category_breakdown": sorted_breakdown,
+        "period": {"start_date": start, "end_date": end},
+    }), 200
+
+
+# ---------------------------------------------------------------------------
+# FR-24 — Daily spending trend (time-series)
+# ---------------------------------------------------------------------------
+# GET /api/homes/<home_id>/audit/trends
+@audit_bp.route("/homes/<home_id>/audit/trends", methods=["GET"])
+def audit_trends(home_id):
+    """FR-24: Return daily spend aggregated into a time-series array.
+
+    Each element:  { date: "YYYY-MM-DD", amount: float, is_today: bool }
+
+    Suitable for bar/line charts in the frontend.
+    """
+    if home_id not in DB["homes"]:
+        return jsonify({"error": "Home not found"}), 404
+
+    start, end  = _parse_period(request.args)
+    bills       = _bills_in_period(home_id, start, end)
+    expenses    = _expenses_in_period(home_id, start, end)
+
+    # Aggregate by date
+    daily: dict[str, float] = defaultdict(float)
+    for b in bills:
+        d = b.get("date", "")
+        if d:
+            daily[d] += b.get("total", 0)
+    for e in expenses:
+        d = e.get("start_date", "")
+        if d:
+            daily[d] += e.get("amount", 0)
+
+    # Build a full day-by-day series (zero-fill gaps)
+    today_str   = date.today().isoformat()
+    try:
+        cursor  = date.fromisoformat(start)
+        end_d   = date.fromisoformat(end)
+    except ValueError:
+        return jsonify({"error": "Invalid date range"}), 400
+
+    series = []
+    while cursor <= end_d:
+        ds = cursor.isoformat()
+        series.append({
+            "date":     ds,
+            "amount":   round(daily.get(ds, 0), 2),
+            "is_today": ds == today_str,
+        })
+        cursor += timedelta(days=1)
+
+    return jsonify({
+        "trends": series,
+        "period": {"start_date": start, "end_date": end},
+    }), 200
+
+
+# ---------------------------------------------------------------------------
+# FR-25 — Budget vs. Actual comparison
+# ---------------------------------------------------------------------------
+# GET /api/homes/<home_id>/audit/budget-vs-actual
+@audit_bp.route("/homes/<home_id>/audit/budget-vs-actual", methods=["GET"])
+def budget_vs_actual(home_id):
+    """FR-25: Compare each budget category against actual spend for the period.
+
+    Each row:
+      category        — category name
+      budget_amount   — allocated amount (0 if no budget defined)
+      actual_spent    — actual spend in the period
+      remaining       — budget_amount - actual_spent  (can be negative)
+      over_budget     — bool
+      pct_used        — percentage of budget consumed (null if no budget)
+    """
+    if home_id not in DB["homes"]:
+        return jsonify({"error": "Home not found"}), 404
+
+    start, end = _parse_period(request.args)
+    bills      = _bills_in_period(home_id, start, end)
+    expenses   = _expenses_in_period(home_id, start, end)
+
+    # Period month/year for matching budgets
+    try:
+        period_start = date.fromisoformat(start)
+        month_f      = period_start.month
+        year_f       = period_start.year
+    except ValueError:
+        month_f = year_f = None
+
+    # Actual spend per category
+    actual: dict[str, float] = defaultdict(float)
+    for b in bills:
+        actual[b.get("category") or "Uncategorised"] += b.get("total", 0)
+    for e in expenses:
+        actual[e.get("expense_type") or "Expense"] += e.get("amount", 0)
+
+    # Budgets for this home (filter by month/year if possible)
+    budgets_for_home: dict[str, float] = {}
+    for bgt in DB["budgets"].values():
+        if bgt["home_id"] != home_id:
+            continue
+        if month_f and bgt.get("month") != month_f:
+            continue
+        if year_f and bgt.get("year") != year_f:
+            continue
+        budgets_for_home[bgt["category"]] = bgt.get("budget_amount", 0)
+
+    # Merge all categories
+    all_cats = set(actual.keys()) | set(budgets_for_home.keys())
+    rows = []
+    over_budget_count = 0
+    for cat in sorted(all_cats):
+        budget_amt = budgets_for_home.get(cat, 0)
+        spent      = round(actual.get(cat, 0), 2)
+        remaining  = round(budget_amt - spent, 2)
+        over       = budget_amt > 0 and spent > budget_amt
+        if over:
+            over_budget_count += 1
+        pct = round(spent / budget_amt * 100, 1) if budget_amt > 0 else None
+        rows.append({
+            "category":     cat,
+            "budget_amount": round(budget_amt, 2),
+            "actual_spent": spent,
+            "remaining":    remaining,
+            "over_budget":  over,
+            "pct_used":     pct,
+        })
+
+    total_budget = round(sum(budgets_for_home.values()), 2)
+    total_spent  = round(sum(actual.values()), 2)
+
+    return jsonify({
+        "rows":               rows,
+        "total_budget":       total_budget,
+        "total_spent":        total_spent,
+        "over_budget_count":  over_budget_count,
+        "period": {"start_date": start, "end_date": end},
+    }), 200
+
+
+# ---------------------------------------------------------------------------
+# FR-27 — Export CSV
+# ---------------------------------------------------------------------------
+# GET /api/homes/<home_id>/audit/export/csv
+@audit_bp.route("/homes/<home_id>/audit/export/csv", methods=["GET"])
+def export_csv(home_id):
+    """FR-27: Export all bills and expenses in the period as a CSV file."""
+    if home_id not in DB["homes"]:
+        return jsonify({"error": "Home not found"}), 404
+
+    start, end = _parse_period(request.args)
+    bills      = _bills_in_period(home_id, start, end)
+    expenses   = _expenses_in_period(home_id, start, end)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Date", "Type", "Title", "Category", "Amount", "Split Type / Frequency"])
+
+    for b in sorted(bills, key=lambda x: x.get("date", ""), reverse=True):
+        writer.writerow([
+            b.get("date", ""),
+            "Bill",
+            b.get("title", ""),
+            b.get("category", ""),
+            f"{b.get('total', 0):.2f}",
+            b.get("split_type", ""),
+        ])
+
+    for e in sorted(expenses, key=lambda x: x.get("start_date", ""), reverse=True):
+        writer.writerow([
+            e.get("start_date", ""),
+            "Expense",
+            e.get("title", ""),
+            e.get("expense_type", ""),
+            f"{e.get('amount', 0):.2f}",
+            e.get("frequency") or "one-time",
+        ])
+
+    csv_bytes = output.getvalue().encode("utf-8")
+    filename  = f"paymates_audit_{start}_to_{end}.csv"
+    return Response(
+        csv_bytes,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ---------------------------------------------------------------------------
+# FR-27 — Export XLSX
+# ---------------------------------------------------------------------------
+# GET /api/homes/<home_id>/audit/export/xlsx
+@audit_bp.route("/homes/<home_id>/audit/export/xlsx", methods=["GET"])
+def export_xlsx(home_id):
+    """FR-27: Export all bills and expenses in the period as an XLSX file.
+
+    Requires openpyxl (listed in requirements.txt).  Falls back to a 501
+    error if the package is not available.
+    """
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment
+    except ImportError:
+        return jsonify({"error": "openpyxl is not installed on the server"}), 501
+
+    if home_id not in DB["homes"]:
+        return jsonify({"error": "Home not found"}), 404
+
+    home_name  = DB["homes"][home_id].get("name", "Home")
+    start, end = _parse_period(request.args)
+    bills      = _bills_in_period(home_id, start, end)
+    expenses   = _expenses_in_period(home_id, start, end)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Expense Audit"
+
+    # ── Header row ────────────────────────────────────────────────────────
+    HEADER_FILL = PatternFill("solid", fgColor="7C3AED")
+    HEADER_FONT = Font(bold=True, color="FFFFFF")
+    headers = ["Date", "Type", "Title", "Category", "Amount ($)", "Split / Frequency"]
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=h)
+        cell.fill  = HEADER_FILL
+        cell.font  = HEADER_FONT
+        cell.alignment = Alignment(horizontal="center")
+
+    # ── Data rows ─────────────────────────────────────────────────────────
+    row_num = 2
+    BILL_FILL    = PatternFill("solid", fgColor="1C1C2E")   # dark purple tint
+    EXPENSE_FILL = PatternFill("solid", fgColor="0F1530")
+
+    for b in sorted(bills, key=lambda x: x.get("date", ""), reverse=True):
+        ws.append([
+            b.get("date", ""),
+            "Bill",
+            b.get("title", ""),
+            b.get("category", ""),
+            round(b.get("total", 0), 2),
+            b.get("split_type", ""),
+        ])
+        row_num += 1
+
+    for e in sorted(expenses, key=lambda x: x.get("start_date", ""), reverse=True):
+        ws.append([
+            e.get("start_date", ""),
+            "Expense",
+            e.get("title", ""),
+            e.get("expense_type", ""),
+            round(e.get("amount", 0), 2),
+            e.get("frequency") or "one-time",
+        ])
+        row_num += 1
+
+    # ── Summary sheet ─────────────────────────────────────────────────────
+    ws2 = wb.create_sheet("Summary")
+    ws2.append(["Metric", "Value"])
+    ws2.append(["Home", home_name])
+    ws2.append(["Period", f"{start} to {end}"])
+    ws2.append(["Total Bills", len(bills)])
+    ws2.append(["Total Expenses", len(expenses)])
+    ws2.append(["Total Spend ($)", round(
+        sum(b.get("total", 0) for b in bills) +
+        sum(e.get("amount", 0) for e in expenses), 2
+    )])
+
+    # Auto-width columns (main sheet)
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or "")) for cell in col)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 45)
+
+    # ── Stream to response ────────────────────────────────────────────────
+    buf      = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    filename = f"paymates_audit_{start}_to_{end}.xlsx"
+    return Response(
+        buf.read(),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ---------------------------------------------------------------------------
+# UC-12 helper — Budget CRUD (FR-04 / FR-05 / FR-06)
+# ---------------------------------------------------------------------------
+# POST /api/homes/<home_id>/budgets
+@audit_bp.route("/homes/<home_id>/budgets", methods=["POST"])
+def create_budget(home_id):
+    """FR-04/05/06: Create a budget for a home category.
+
+    Body: { creator_id, category, budget_amount, month, year, visibility }
+    """
+    if home_id not in DB["homes"]:
+        return jsonify({"error": "Home not found"}), 404
+
+    from mock_db import new_id
+    data = request.get_json(silent=True) or {}
+
+    creator_id    = (data.get("creator_id") or "").strip()
+    category      = (data.get("category") or "").strip()
+    visibility    = (data.get("visibility") or "all").strip().lower()
+    today         = date.today()
+
+    try:
+        budget_amount = float(data.get("budget_amount", 0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "budget_amount must be a number"}), 400
+
+    if not category:
+        return jsonify({"error": "category is required"}), 400
+    if budget_amount <= 0:
+        return jsonify({"error": "budget_amount must be greater than 0"}), 400
+    if visibility not in ("private", "group", "all"):
+        return jsonify({"error": "visibility must be private, group, or all"}), 400
+
+    try:
+        month = int(data.get("month", today.month))
+        year  = int(data.get("year",  today.year))
+    except (TypeError, ValueError):
+        return jsonify({"error": "month and year must be integers"}), 400
+
+    bgt_id = new_id()
+    budget = {
+        "id":            bgt_id,
+        "home_id":       home_id,
+        "category":      category,
+        "budget_amount": budget_amount,
+        "month":         month,
+        "year":          year,
+        "visibility":    visibility,
+        "created_by":    creator_id,
+    }
+    DB["budgets"][bgt_id] = budget
+    return jsonify({"budget": budget}), 201
+
+
+# GET /api/homes/<home_id>/budgets
+@audit_bp.route("/homes/<home_id>/budgets", methods=["GET"])
+def list_budgets(home_id):
+    """FR-04/05: List all budgets for a home."""
+    if home_id not in DB["homes"]:
+        return jsonify({"error": "Home not found"}), 404
+
+    home_budgets = [b for b in DB["budgets"].values() if b["home_id"] == home_id]
+    return jsonify({"budgets": home_budgets}), 200
