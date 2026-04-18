@@ -73,6 +73,29 @@ python app.py
 The API will be available at **http://localhost:5001**.  
 You can verify it is running by visiting **http://localhost:5001/api/health** — it should return `{"status": "ok"}`.
 
+#### Magic-link email (backend environment)
+
+Set these in your shell before `python app.py` (or use your own process manager / `.env` loader):
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `FRONTEND_BASE_URL` | Yes | Browser origin for links in emails, e.g. `http://localhost:3000` (no trailing slash). |
+| `EMAIL_FROM` | For SMTP | `From:` address when using SMTP. |
+| `SMTP_HOST` | For SMTP | If unset, magic links are **only printed to the server console** (fine for local dev). |
+| `SMTP_PORT` | No | Default `587`. |
+| `SMTP_USER` / `SMTP_PASSWORD` | Often | SMTP credentials. |
+| `SMTP_USE_TLS` | No | Default `true` (STARTTLS). |
+| `SMTP_USE_SSL` | No | Default `false`; set `true` for implicit TLS (e.g. port 465). |
+| `MAGIC_LINK_RETURN_TOKEN` | No | If `true`, signup/login responses also include a `token` field so you can use “Verify and continue” on the `/magic-link-sent` page without email. |
+
+Example (console-only links, typical local run):
+
+```bash
+export FRONTEND_BASE_URL=http://localhost:5173
+cd paymates/backend
+python app.py
+```
+
 ---
 
 ### 3. Start the Frontend (Vite + React)
