@@ -36,7 +36,7 @@ app.register_blueprint(bills_bp,     url_prefix="/api")
 app.register_blueprint(expenses_bp,  url_prefix="/api")
 app.register_blueprint(items_bp,     url_prefix="/api")
 app.register_blueprint(dues_bp,      url_prefix="/api")       # UC06 dues
-
+app.register_blueprint(budgets_bp,   url_prefix="/api")
 
 # ---------------------------------------------------------------------------
 # Health check
