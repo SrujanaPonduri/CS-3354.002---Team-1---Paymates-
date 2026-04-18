@@ -20,6 +20,8 @@ from routes.expenses import expenses_bp
 from routes.homes import homes_bp
 from routes.items import items_bp
 from routes.roommates import roommates_bp
+from routes.history import history_bp   # UC-10 payment history
+from routes.audit import audit_bp       # UC-12 audit & reports
 
 app = Flask(__name__)
 
@@ -36,7 +38,9 @@ app.register_blueprint(bills_bp,     url_prefix="/api")
 app.register_blueprint(expenses_bp,  url_prefix="/api")
 app.register_blueprint(items_bp,     url_prefix="/api")
 app.register_blueprint(dues_bp,      url_prefix="/api")       # UC06 dues
-app.register_blueprint(budgets_bp,   url_prefix="/api")
+app.register_blueprint(history_bp,   url_prefix="/api")       # UC-10 payment history
+app.register_blueprint(audit_bp,     url_prefix="/api")       # UC-12 audit & reports
+
 
 # ---------------------------------------------------------------------------
 # Health check
