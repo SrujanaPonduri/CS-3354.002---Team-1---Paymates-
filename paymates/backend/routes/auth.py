@@ -28,6 +28,10 @@ def _find_user_by_email(email: str):
         None,
     )
 
+# Session tokens issued after successful magic-link verification / account setup
+# live much longer than magic-link tokens so users stay signed in across visits.
+_SESSION_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30  # 30 days
+
 # Generates 32 random buytes encoded as a URL-safe string which is sent to the user for verification. 
 # This is what stimulates the magic-link that the user receives when he/she tries to log in. 
 def _generate_token(email: str) -> str:
@@ -43,6 +47,18 @@ def _generate_token(email: str) -> str:
     DB["tokens"][token] = {
         "email": email,
         "expires_at": time.time() + 900,  # 15-minute window
+        "kind": "magic_link",
+    }
+    return token
+
+
+def _generate_session_token(email: str) -> str:
+    """Issue a long-lived session token stored in DB["tokens"] and return it."""
+    token = secrets.token_urlsafe(32)
+    DB["tokens"][token] = {
+        "email": email,
+        "expires_at": time.time() + _SESSION_TOKEN_TTL_SECONDS,
+        "kind": "session",
     }
     return token
 
@@ -57,6 +73,13 @@ def _verify_token(token: str):
         DB["tokens"].pop(token, None)   # clean up expired token
         return None
     return record
+
+
+def get_valid_token_record(token: str):
+    """Public wrapper around the internal token-check used by request middleware."""
+    if not token:
+        return None
+    return _verify_token(token)
 
 
 def _magic_link_return_token() -> bool:
@@ -158,11 +181,17 @@ def verify(token):
     # account is already set up → skip AccountSetupPage → go to /homes.
     # If user is null, the frontend navigates to AccountSetupPage instead.
     user = _find_user_by_email(record["email"])
-    return jsonify({
+    payload = {
         "valid": True,
         "email": record["email"],
         "user":  user,   # None for brand-new users; full object for returning users
-    }), 200
+    }
+    # Returning users are fully logged in at this point — issue a session token
+    # the frontend can send on subsequent API calls. New users will receive
+    # their session token from /auth/setup after completing their profile.
+    if user:
+        payload["token"] = _generate_session_token(record["email"])
+    return jsonify(payload), 200
 
 
 # ---------------------------------------------------------------------------
@@ -212,7 +241,9 @@ def setup():
     }
     DB["users"][user_id] = user
 
-    # Invalidate the token — it's single-use
+    # Invalidate the magic-link token — it's single-use — and issue a
+    # longer-lived session token for the freshly-created account.
     DB["tokens"].pop(token, None)
+    session_token = _generate_session_token(email)
 
-    return jsonify({"user": user}), 201
+    return jsonify({"user": user, "token": session_token}), 201
