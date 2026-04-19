@@ -51,7 +51,7 @@ def _reset_db():
     """Wipe the in-memory DB before each test and re-seed demo data."""
     from mock_db import DB, seed
 
-    for key in ("users", "tokens", "homes", "invites", "bills", "dues", "expenses", "items"):
+    for key in ("users", "tokens", "homes", "invites", "bills", "dues", "expenses", "items", "budgets"):
         DB[key].clear()
     seed()
     yield
@@ -69,3 +69,39 @@ def signup_and_get_token(client):
         return body["token"]
 
     return _do
+
+
+# ---------------------------------------------------------------------------
+# Authenticated client — used by test_uc9-12.py
+# ---------------------------------------------------------------------------
+
+class _AuthedClient:
+    """Wraps Flask test client; injects Bearer token on every request."""
+    def __init__(self, raw, token: str):
+        self._c = raw
+        self._h = {"Authorization": f"Bearer {token}"}
+
+    def _m(self, kw):
+        h = {**self._h, **(kw.pop("headers", {}) or {})}
+        kw["headers"] = h
+        return kw
+
+    def get(self, *a, **kw):    return self._c.get(*a,    **self._m(kw))
+    def post(self, *a, **kw):   return self._c.post(*a,   **self._m(kw))
+    def patch(self, *a, **kw):  return self._c.patch(*a,  **self._m(kw))
+    def put(self, *a, **kw):    return self._c.put(*a,    **self._m(kw))
+    def delete(self, *a, **kw): return self._c.delete(*a, **self._m(kw))
+
+
+@pytest.fixture
+def authed_client(flask_app, monkeypatch):
+    """Authenticated test client — auto-sends Bearer session token."""
+    monkeypatch.setattr("routes.auth.send_magic_link", lambda *a, **k: None)
+    with flask_app.test_client() as raw:
+        r1 = raw.post("/api/auth/login", json={"email": "aagam@example.com"})
+        assert r1.status_code == 200, f"Login failed: {r1.get_json()}"
+        magic_token = r1.get_json()["token"]
+        r2 = raw.get(f"/api/auth/verify/{magic_token}")
+        assert r2.status_code == 200, f"Verify failed: {r2.get_json()}"
+        session_token = r2.get_json()["token"]
+        yield _AuthedClient(raw, session_token)

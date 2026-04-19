@@ -16,7 +16,7 @@ def create_budget():
 
     try:
         limit_val = float(limit)
-        if limit_val < 0:
+        if limit_val <= 0:
             return jsonify({"error": "Limit must be a positive number"}), 400
     except ValueError:
         return jsonify({"error": "Limit must be a number"}), 400
