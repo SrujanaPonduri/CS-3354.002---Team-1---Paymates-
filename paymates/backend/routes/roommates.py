@@ -89,6 +89,11 @@ def invite_roommate(home_id):
     if not inviter_id or not invitee_email:
         return jsonify({"error": "inviter_id and invitee_email are required"}), 400
 
+    # Validate email format — must contain '@' and a '.' after the '@'
+    at_idx = invitee_email.find("@")
+    if at_idx < 1 or "." not in invitee_email[at_idx:]:
+        return jsonify({"error": "Please enter a valid email address"}), 400
+
     if inviter_id not in home["roommate_ids"]:
         return jsonify({"error": "You are not a member of this home"}), 403
 

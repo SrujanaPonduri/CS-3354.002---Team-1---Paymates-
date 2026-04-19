@@ -1,15 +1,26 @@
 # routes/auth.py
 # Responsible for: UC01 — user registration (sign-up), login, magic-link token
-# Joseph Botros 
+# Joseph Botros and Aagam Shah
 # verification, and account-setup (profile creation after first login).
 
+import os
+import re # for email format validation
 import time # for token expiration timestamps
 import secrets # for secure token generation
 
 from flask import Blueprint, jsonify, request # for defining routes and handling JSON requests/responses
 from mock_db import DB, new_id # mock in-memory database and ID generator
+from services.email_service import EmailSendError, send_magic_link
 
 auth_bp = Blueprint("auth", __name__) # Blueprint for auth-related routes, to be registered in the main app
+
+# Minimal RFC-5322-inspired sanity check: one "@", at least one "." in the
+# domain, no whitespace. Rejects strings like "not-an-email", "a@b", "a b@c.com".
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _is_valid_email(email: str) -> bool:
+    return bool(_EMAIL_RE.match(email))
 
 
 # ---------------------------------------------------------------------------
@@ -26,15 +37,18 @@ def _find_user_by_email(email: str):
         None,
     )
 
+# Session tokens issued after successful magic-link verification / account setup
+# live much longer than magic-link tokens so users stay signed in across visits.
+_SESSION_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30  # 30 days
+
 # Generates 32 random buytes encoded as a URL-safe string which is sent to the user for verification. 
 # This is what stimulates the magic-link that the user receives when he/she tries to log in. 
 def _generate_token(email: str) -> str:
     """Create a URL-safe token, store it in DB["tokens"], and return it.
 
-    Token expires in 900 seconds (15 minutes).  In a real system this token
-    would be embedded in an email link; here it is returned directly in the
-    API response body so the grader can observe the full authentication flow
-    without an email server.
+    Token expires in 900 seconds (15 minutes).  The link is emailed via
+    services.email_service; set MAGIC_LINK_RETURN_TOKEN=true to also return
+    the token in the JSON body (local dev / automated tests).
     """
     # secrets.token_urlsafe(32) generates 43 characters of base64url-encoded
     # random bytes — cryptographically secure and collision-resistant.
@@ -42,6 +56,18 @@ def _generate_token(email: str) -> str:
     DB["tokens"][token] = {
         "email": email,
         "expires_at": time.time() + 900,  # 15-minute window
+        "kind": "magic_link",
+    }
+    return token
+
+
+def _generate_session_token(email: str) -> str:
+    """Issue a long-lived session token stored in DB["tokens"] and return it."""
+    token = secrets.token_urlsafe(32)
+    DB["tokens"][token] = {
+        "email": email,
+        "expires_at": time.time() + _SESSION_TOKEN_TTL_SECONDS,
+        "kind": "session",
     }
     return token
 
@@ -58,30 +84,65 @@ def _verify_token(token: str):
     return record
 
 
+def get_valid_token_record(token: str):
+    """Public wrapper around the internal token-check used by request middleware."""
+    if not token:
+        return None
+    return _verify_token(token)
+
+
+def _magic_link_return_token() -> bool:
+    return os.environ.get("MAGIC_LINK_RETURN_TOKEN", "").lower() in ("1", "true", "yes")
+
+
+def _issue_magic_link(email: str, token: str, *, signup: bool):
+    """Send the magic-link email; on failure revoke *token* and return (response, status)."""
+    try:
+        send_magic_link(email, token, signup=signup)
+    except ValueError as exc:
+        DB["tokens"].pop(token, None)
+        return jsonify({"error": str(exc)}), 500
+    except EmailSendError:
+        DB["tokens"].pop(token, None)
+        return jsonify({"error": "Unable to send email. Please try again later."}), 503
+    payload = {
+        "message": (
+            "Check your email for a link to finish creating your account."
+            if signup
+            else "Check your email for a link to sign in."
+        ),
+    }
+    if _magic_link_return_token():
+        payload["token"] = token
+    return jsonify(payload), 200
+
+
 # ---------------------------------------------------------------------------
 # UC01-FR01 / UC01-FR02 — Sign up (initiate magic-link flow for new users)
 # ---------------------------------------------------------------------------
 # POST /api/auth/signup
 # Body: { "email": str }
-# Returns the magic-link token directly (simulates email delivery).
+# Sends magic-link email; optional MAGIC_LINK_RETURN_TOKEN includes token in JSON.
 @auth_bp.route("/signup", methods=["POST"])
 def signup():
     """UC01-FR01: Register a new user by email and issue a magic-link token.
 
     Returns 409 if email is already registered.
-    Returns the token so the frontend can simulate clicking the magic link.
+    Sends email with embedded link; see MAGIC_LINK_RETURN_TOKEN for dev-only token in body.
     """
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
 
     if not email:
         return jsonify({"error": "email is required"}), 400
+    if not _is_valid_email(email):
+        return jsonify({"error": "Invalid email format"}), 400
 
     if _find_user_by_email(email):
         return jsonify({"error": "Email already registered"}), 409
 
     token = _generate_token(email)
-    return jsonify({"token": token}), 200
+    return _issue_magic_link(email, token, signup=True)
 
 
 # ---------------------------------------------------------------------------
@@ -89,25 +150,28 @@ def signup():
 # ---------------------------------------------------------------------------
 # POST /api/auth/login
 # Body: { "email": str }
-# Returns the magic-link token directly (simulates email delivery).
+# Sends magic-link email; optional MAGIC_LINK_RETURN_TOKEN includes token in JSON.
 @auth_bp.route("/login", methods=["POST"])
 def login():
     """UC01-FR03: Issue a magic-link token for an existing user.
 
     Returns 404 if the email is not yet registered.
+    Sends email with embedded link; see MAGIC_LINK_RETURN_TOKEN for dev-only token in body.
     """
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
 
     if not email:
         return jsonify({"error": "email is required"}), 400
+    if not _is_valid_email(email):
+        return jsonify({"error": "Invalid email format"}), 400
 
     user = _find_user_by_email(email)
     if not user:
         return jsonify({"error": "No account found with that email"}), 404
 
     token = _generate_token(email)
-    return jsonify({"token": token}), 200
+    return _issue_magic_link(email, token, signup=False)
 
 
 # ---------------------------------------------------------------------------
@@ -130,11 +194,17 @@ def verify(token):
     # account is already set up → skip AccountSetupPage → go to /homes.
     # If user is null, the frontend navigates to AccountSetupPage instead.
     user = _find_user_by_email(record["email"])
-    return jsonify({
+    payload = {
         "valid": True,
         "email": record["email"],
         "user":  user,   # None for brand-new users; full object for returning users
-    }), 200
+    }
+    # Returning users are fully logged in at this point — issue a session token
+    # the frontend can send on subsequent API calls. New users will receive
+    # their session token from /auth/setup after completing their profile.
+    if user:
+        payload["token"] = _generate_session_token(record["email"])
+    return jsonify(payload), 200
 
 
 # ---------------------------------------------------------------------------
@@ -184,7 +254,9 @@ def setup():
     }
     DB["users"][user_id] = user
 
-    # Invalidate the token — it's single-use
+    # Invalidate the magic-link token — it's single-use — and issue a
+    # longer-lived session token for the freshly-created account.
     DB["tokens"].pop(token, None)
+    session_token = _generate_session_token(email)
 
-    return jsonify({"user": user}), 201
+    return jsonify({"user": user, "token": session_token}), 201

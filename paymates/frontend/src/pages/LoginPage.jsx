@@ -18,6 +18,10 @@ export default function LoginPage() {
     try {
       const res = await client.post('/auth/login', { email: email.trim() });
       navigate('/magic-link-sent', { state: { token: res.data.token, email } });
+
+      const nextState = { email: email.trim() };
+      if (res.data.token) nextState.token = res.data.token;
+      navigate('/magic-link-sent', { state: nextState });
     } catch (err) {
       if (err.response?.status === 404) {
         setError('No account found. Please sign up first.');

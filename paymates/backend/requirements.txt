@@ -1,3 +1,5 @@
 flask
 flask-cors
 python-dateutil
+python-dotenv
+pytest

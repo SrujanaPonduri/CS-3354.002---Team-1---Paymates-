@@ -1,4 +1,16 @@
 // src/pages/SignUpPage.jsx
+// ─────────────────────────────────────────────────────────────────────────────
+// Use Case: UC01 — FR-01: Register a new user via email → magic-link flow.
+//
+// Flow:
+//   1. User enters email → POST /api/auth/signup
+//   2. Backend sends a magic-link email (and may return token in dev if configured).
+//   3. Frontend navigates to MagicLinkSentPage with { email } and optional { token }.
+//
+// Error handling:
+//   409 → email already registered (prompt to log in instead)
+//   any → generic error shown in ErrorBanner
+// ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -18,6 +30,10 @@ export default function SignUpPage() {
     try {
       const res = await client.post('/auth/signup', { email: email.trim() });
       navigate('/magic-link-sent', { state: { token: res.data.token, email } });
+
+      const nextState = { email: email.trim() };
+      if (res.data.token) nextState.token = res.data.token;
+      navigate('/magic-link-sent', { state: nextState });
     } catch (err) {
       if (err.response?.status === 409) {
         setError('This email is already registered. Try logging in.');

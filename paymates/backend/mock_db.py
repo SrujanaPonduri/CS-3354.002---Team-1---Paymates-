@@ -131,6 +131,7 @@ DB: dict = {
     #   purchased_on : str   — ISO date string of when the item was purchased
     # }
     "items": {},
+    "budgets": {},
 }
 
 
@@ -254,6 +255,15 @@ def seed():
         "amount":                 30.00,
         "due_date":               "2025-04-10",
         "status":                 "pending",
+    }
+    # --- Demo Budget (UC-11 seed data) ---
+    DB["budgets"]["budget-1"] = {
+        "id": "budget-1",
+        "home_id": "home-demo",
+        "category": "Groceries",
+        "limit": 500.0,
+        "current_balance": 90.0,
+        "visibility": "all"
     }
 
 

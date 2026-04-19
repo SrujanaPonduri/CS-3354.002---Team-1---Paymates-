@@ -13,7 +13,7 @@ export async function verifyMagicLinkAndRoute({ token, navigate, setCurrentUser 
   if (user) {
     if (sessionToken) localStorage.setItem('paymates_token', sessionToken);
     setCurrentUser(user);
-    navigate('/homes');
+    navigate('/homes/home-demo/inventory');
   } else {
     navigate('/account-setup', { state: { token, email } });
   }
