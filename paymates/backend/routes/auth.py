@@ -4,6 +4,7 @@
 # verification, and account-setup (profile creation after first login).
 
 import os
+import re # for email format validation
 import time # for token expiration timestamps
 import secrets # for secure token generation
 
@@ -12,6 +13,14 @@ from mock_db import DB, new_id # mock in-memory database and ID generator
 from services.email_service import EmailSendError, send_magic_link
 
 auth_bp = Blueprint("auth", __name__) # Blueprint for auth-related routes, to be registered in the main app
+
+# Minimal RFC-5322-inspired sanity check: one "@", at least one "." in the
+# domain, no whitespace. Rejects strings like "not-an-email", "a@b", "a b@c.com".
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _is_valid_email(email: str) -> bool:
+    return bool(_EMAIL_RE.match(email))
 
 
 # ---------------------------------------------------------------------------
@@ -126,6 +135,8 @@ def signup():
 
     if not email:
         return jsonify({"error": "email is required"}), 400
+    if not _is_valid_email(email):
+        return jsonify({"error": "Invalid email format"}), 400
 
     if _find_user_by_email(email):
         return jsonify({"error": "Email already registered"}), 409
@@ -152,6 +163,8 @@ def login():
 
     if not email:
         return jsonify({"error": "email is required"}), 400
+    if not _is_valid_email(email):
+        return jsonify({"error": "Invalid email format"}), 400
 
     user = _find_user_by_email(email)
     if not user:
