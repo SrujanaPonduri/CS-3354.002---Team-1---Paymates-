@@ -1,6 +1,6 @@
 // src/pages/HomesPage.jsx
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import client from '../api/client.js';
 import { useHome } from '../context/HomeContext.jsx';
@@ -8,28 +8,14 @@ import ErrorBanner from '../components/ErrorBanner.jsx';
 import DeleteHomeModal from '../components/DeleteHomeModal.jsx';
 
 export default function HomesPage() {
-  const { currentUser } = useHome();
-  const navigate              = useNavigate();
-  const [homes, setHomes]     = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState('');
+  const { currentUser, homes, setHomes, homesLoading, homesError, refreshHomes } = useHome();
+  const navigate = useNavigate();
+
+  const [error, setError]               = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [leaveLoading, setLeaveLoading] = useState('');
 
-  const fetchHomes = useCallback(async () => {
-    if (!currentUser) return;
-    setLoading(true);
-    try {
-      const res = await client.get(`/homes?user_id=${currentUser.id}`);
-      setHomes(res.data.homes);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to load homes.');
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser]);
-
-  useEffect(() => { fetchHomes(); }, [fetchHomes]);
+  const displayError = error || homesError || '';
 
   const handleLeave = async (homeId, homeName) => {
     if (!window.confirm(`Leave "${homeName}"? You will need a new invite to rejoin.`)) return;
@@ -61,9 +47,9 @@ export default function HomesPage() {
         </button>
       </div>
 
-      <ErrorBanner message={error} onDismiss={() => setError('')} />
+      <ErrorBanner message={displayError} onDismiss={() => setError('')} />
 
-      {loading ? (
+      {homesLoading ? (
         <p className="text-muted">Loading homes…</p>
       ) : homes.length === 0 ? (
         <div className="empty-state">
@@ -80,7 +66,6 @@ export default function HomesPage() {
             const alreadyVoted = home.deletion_votes?.includes(currentUser?.id);
             return (
               <div key={home.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
-                {/* Header */}
                 <div>
                   <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '0.5rem' }}>{home.name}</h3>
                   <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>{home.address || 'No address set'}</p>
@@ -91,7 +76,6 @@ export default function HomesPage() {
                   )}
                 </div>
 
-                {/* Stats */}
                 <div style={{ display: 'flex', gap: '1.5rem', fontSize: '14px', color: 'var(--text-muted)' }}>
                   <span>👥 {home.member_count} member{home.member_count !== 1 ? 's' : ''}</span>
                   {home.votes_cast > 0 && (
@@ -101,21 +85,22 @@ export default function HomesPage() {
                   )}
                 </div>
 
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto', paddingTop: '1rem', borderTop: '2px solid var(--border-light)' }}>
-                  <Link to={`/homes/${home.id}/inventory`} className="btn btn-success" style={{ textDecoration: 'none', flex: 1 }}>
-                    ENTER →
-                  </Link>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: 'auto', paddingTop: '1rem', borderTop: '2px solid var(--border-light)' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <Link to={`/homes/${home.id}/inventory`} className="btn btn-success" style={{ textDecoration: 'none', flex: 1 }}>
+                      ENTER →
+                    </Link>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => handleLeave(home.id, home.name)}
+                      disabled={leaveLoading === home.id}
+                      style={{ flex: 1 }}
+                    >
+                      {leaveLoading === home.id ? 'LEAVING...' : 'LEAVE'}
+                    </button>
+                  </div>
                   <button
-                    className="btn btn-secondary"
-                    onClick={() => handleLeave(home.id, home.name)}
-                    disabled={leaveLoading === home.id}
-                    style={{ flex: 1 }}
-                  >
-                    {leaveLoading === home.id ? 'LEAVING...' : 'LEAVE'}
-                  </button>
-                  <button
-                    className="btn btn-danger"
+                    className="btn btn-danger btn-full"
                     onClick={() => setDeleteTarget(home)}
                     title={alreadyVoted ? 'You already voted to delete' : 'Vote to delete home'}
                   >
@@ -137,7 +122,7 @@ export default function HomesPage() {
             setHomes(prev => prev.filter(h => h.id !== deleteTarget.id));
             setDeleteTarget(null);
           }}
-          onVoteCast={() => fetchHomes()}
+          onVoteCast={() => refreshHomes()}
         />
       )}
     </div>
