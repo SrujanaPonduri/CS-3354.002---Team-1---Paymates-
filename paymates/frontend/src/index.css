@@ -704,3 +704,29 @@ tbody tr:hover td {
 .dot.filled {
   background: var(--success);
 }
+
+/* ─── Top nav user chip hover ─── */
+.top-nav-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  transition: all .15s;
+}
+
+.top-nav-user-chip:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+
+.top-nav-user-chip:hover .user-name {
+  color: white;
+}
+
+.top-nav-user-chip:hover .avatar {
+  background: white;
+  color: var(--primary-dark);
+}

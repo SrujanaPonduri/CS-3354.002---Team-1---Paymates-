@@ -33,7 +33,9 @@ export default function AccountSetupPage() {
         address: address.trim(),
       });
 
-      const user = res.data.user;
+      const { user, token: sessionToken } = res.data;
+      // Save the session token so client.js attaches it to every API request.
+      if (sessionToken) localStorage.setItem('paymates_token', sessionToken);
       setCurrentUser(user);
       navigate('/homes');
     } catch (err) {
@@ -53,7 +55,7 @@ export default function AccountSetupPage() {
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{ fontSize: '48px', marginBottom: '1rem' }}>Profile</div>
         </div>
-        
+
         <h1 className="auth-title" style={{ textAlign: 'center' }}>Set up your profile</h1>
         <p className="auth-subtitle" style={{ textAlign: 'center' }}>
           Complete your account for <strong style={{ color: '#7C5FFF' }}>{email}</strong>

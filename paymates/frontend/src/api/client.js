@@ -14,4 +14,14 @@ const client = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Attach the session token to every request automatically.
+// Saved to localStorage by magicLinkVerify.js and AccountSetupPage.jsx.
+client.interceptors.request.use((config) => {
+  const token = localStorage.getItem('paymates_token');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export default client;
