@@ -1,6 +1,4 @@
 // src/components/DeleteHomeModal.jsx
-// Use Case: UC02 — TC4 (delete blocked, unanimous consent notice) and
-// TC5 (all members voted, home deleted and removed from dashboard).
 
 import React, { useState } from 'react';
 import client from '../api/client.js';
@@ -9,7 +7,7 @@ import ErrorBanner from './ErrorBanner.jsx';
 export default function DeleteHomeModal({ home, currentUserId, onClose, onDeleted, onVoteCast }) {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
-  const [voteResult, setVoteResult] = useState(null); // TC4 response
+  const [voteResult, setVoteResult] = useState(null);
 
   const alreadyVoted = home.deletion_votes?.includes(currentUserId);
   const isSoleMember = home.member_count === 1;
@@ -19,18 +17,14 @@ export default function DeleteHomeModal({ home, currentUserId, onClose, onDelete
     setLoading(true);
     try {
       if (isSoleMember) {
-        // Sole member — immediate delete (no vote needed)
         await client.delete(`/homes/${home.id}`, { data: { user_id: currentUserId } });
         onDeleted();
         return;
       }
-      // Cast a delete vote — backend handles TC4 vs TC5
       const res = await client.post(`/homes/${home.id}/delete_vote`, { user_id: currentUserId });
       if (res.data.deleted) {
-        // TC5 — unanimous consent reached, home deleted
         onDeleted();
       } else {
-        // TC4 — vote recorded, still waiting for others
         setVoteResult(res.data);
         onVoteCast?.();
       }
@@ -58,84 +52,80 @@ export default function DeleteHomeModal({ home, currentUserId, onClose, onDelete
 
         <ErrorBanner message={error} onDismiss={() => setError('')} />
 
-        {/* TC4 — post-vote waiting screen */}
         {voteResult && !voteResult.deleted ? (
           <div>
             <div style={{
-              padding: '1rem', borderRadius: 10,
-              background: '#1c1c3a', border: '1px solid #2d2d4a',
-              marginBottom: '1.25rem',
+              padding: '1.25rem', borderRadius: 'var(--rl)',
+              background: 'var(--accent-light)', border: '2px solid var(--accent)',
+              marginBottom: '1.5rem',
             }}>
-              <p style={{ color: '#fcd34d', fontWeight: 600, marginBottom: '.5rem' }}>
+              <p style={{ color: 'var(--warning)', fontWeight: 700, marginBottom: '.75rem', fontSize: 15 }}>
                 ⚠ Unanimous consent required
               </p>
-              <p style={{ fontSize: 14, color: '#94a3b8', marginBottom: '1rem' }}>
+              <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
                 {voteResult.message}
               </p>
-              {/* Vote progress bar */}
-              <div style={{ background: '#252540', borderRadius: 999, height: 8, overflow: 'hidden' }}>
+              <div style={{ background: 'var(--surface-2)', borderRadius: 999, height: 10, overflow: 'hidden', border: '2px solid var(--border-light)' }}>
                 <div style={{
                   width: `${Math.round((voteResult.votes_cast / voteResult.total) * 100)}%`,
-                  background: '#f59e0b', height: '100%', transition: 'width .4s',
+                  background: 'var(--warning)', height: '100%', transition: 'width .4s',
                 }} />
               </div>
-              <p style={{ fontSize: 12, color: '#64748b', marginTop: .4 + 'rem', textAlign: 'right' }}>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: '.6rem', textAlign: 'right', fontWeight: 600 }}>
                 {voteResult.votes_cast} / {voteResult.total} votes
               </p>
             </div>
             <div className="modal-actions">
-              <button className="btn btn-primary" onClick={onClose}>Got it</button>
+              <button className="btn btn-primary" onClick={onClose}>GOT IT</button>
             </div>
           </div>
         ) : (
           <div>
-            <p style={{ fontSize: 14, color: '#94a3b8', marginBottom: '1.25rem' }}>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
               You are requesting to delete{' '}
-              <strong style={{ color: '#e2e8f0' }}>{home.name}</strong>.
+              <strong style={{ color: 'var(--text)' }}>{home.name}</strong>.
             </p>
 
-            {/* Current vote status */}
             {home.member_count > 1 && (
               <div style={{
-                padding: '.875rem 1rem', borderRadius: 10,
-                background: '#1c1c3a', border: '1px solid #2d2d4a',
-                marginBottom: '1.25rem',
+                padding: '1.25rem', borderRadius: 'var(--rl)',
+                background: 'var(--accent-light)', border: '2px solid var(--accent)',
+                marginBottom: '1.5rem',
               }}>
-                {/* TC4 notice */}
-                <p style={{ fontSize: 13, color: '#fcd34d', fontWeight: 600, marginBottom: '.5rem' }}>
+                <p style={{ fontSize: 13, color: 'var(--warning)', fontWeight: 700, marginBottom: '.75rem' }}>
                   ⚠ Unanimous consent required
                 </p>
-                <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: '.75rem' }}>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: '1rem' }}>
                   All {home.member_count} members must vote to delete this home.
                   Once everyone votes, it will be permanently removed.
                 </p>
-                <div style={{ background: '#252540', borderRadius: 999, height: 8, overflow: 'hidden' }}>
-                  <div style={{ width: `${pct}%`, background: '#f59e0b', height: '100%', transition: 'width .4s' }} />
+                <div style={{ background: 'var(--surface-2)', borderRadius: 999, height: 10, overflow: 'hidden', border: '2px solid var(--border-light)' }}>
+                  <div style={{ width: `${pct}%`, background: 'var(--warning)', height: '100%', transition: 'width .4s' }} />
                 </div>
-                <p style={{ fontSize: 12, color: '#64748b', marginTop: '.4rem', textAlign: 'right' }}>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: '.6rem', textAlign: 'right', fontWeight: 600 }}>
                   {home.votes_cast || 0} / {home.member_count} votes cast
                 </p>
               </div>
             )}
 
             {isSoleMember && (
-              <div style={{ padding: '.75rem 1rem', borderRadius: 8, background: '#450a0a', border: '1px solid #b91c1c', marginBottom: '1.25rem', fontSize: 13, color: '#fca5a5' }}>
+              <div style={{ padding: '1rem 1.25rem', borderRadius: 'var(--r)', background: 'var(--error-bg)', border: '2px solid var(--error-border)', marginBottom: '1.5rem', fontSize: 13, color: 'var(--error)', fontWeight: 600 }}>
                 You are the only member. This home will be permanently deleted immediately.
               </div>
             )}
 
             <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+              <button className="btn btn-secondary" onClick={onClose}>CANCEL</button>
               <button
                 className="btn btn-danger"
                 onClick={handleVoteOrDelete}
                 disabled={loading || alreadyVoted}
                 title={alreadyVoted ? 'You already voted to delete this home' : ''}
               >
-                {loading ? 'Submitting…'
-                  : alreadyVoted ? '✓ Already voted'
-                  : isSoleMember ? 'Delete home'
-                  : 'Vote to delete'}
+                {loading ? 'SUBMITTING…'
+                  : alreadyVoted ? '✓ ALREADY VOTED'
+                  : isSoleMember ? 'DELETE HOME'
+                  : 'VOTE TO DELETE'}
               </button>
             </div>
           </div>

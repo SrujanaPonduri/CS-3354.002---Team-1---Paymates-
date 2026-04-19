@@ -1,5 +1,4 @@
 // src/pages/CreateEditBillPage.jsx
-// Use Case: UC04 — FR-09 through FR-14: create or edit an itemized bill.
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -29,7 +28,6 @@ export default function CreateEditBillPage() {
   const [loading,            setLoading]            = useState(false);
   const [error,              setError]              = useState('');
 
-  // Fetch roommates for split panel
   useEffect(() => {
     client.get(`/homes/${homeId}/roommates`)
       .then(r => {
@@ -39,7 +37,6 @@ export default function CreateEditBillPage() {
       .catch(() => {});
   }, [homeId, isEdit]);
 
-  // Pre-fill form in edit mode
   useEffect(() => {
     if (!isEdit) return;
     client.get(`/homes/${homeId}/bills`)
@@ -112,7 +109,6 @@ export default function CreateEditBillPage() {
       } else {
         const res = await client.post('/bills', payload);
         savedId = res.data.bill.id;
-        // FR-14: attach receipt URL if provided
         if (receiptUrl.trim()) {
           await client.post(`/bills/${savedId}/receipt`, { receipt_url: receiptUrl.trim() });
         }
@@ -128,53 +124,52 @@ export default function CreateEditBillPage() {
   const perPerson = assignedRoommates.length > 0 ? total / assignedRoommates.length : 0;
 
   return (
-    <div style={{ maxWidth: 800 }}>
+    <div style={{ maxWidth: 900 }}>
       <div className="page-header">
         <div>
           <h1 className="page-title">{isEdit ? '✏️ Edit Bill' : '🧾 New Bill'}</h1>
           <p className="page-subtitle">{isEdit ? 'Update line items and split' : 'Add items and choose a split method'}</p>
         </div>
         <button className="btn btn-secondary" onClick={() => navigate(`/homes/${homeId}/bills`)}>
-          Cancel
+          CANCEL
         </button>
       </div>
 
       <ErrorBanner message={error} onDismiss={() => setError('')} />
 
       {/* Basic info */}
-      <div className="card" style={{ marginBottom: '1.25rem' }}>
-        <h3 style={{ fontSize: 14, color: '#94a3b8', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '.06em' }}>Bill Details</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <h3 style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: '1.25rem', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>Bill Details</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.25rem' }}>
           <div className="form-group" style={{ gridColumn: '1 / 3' }}>
-            <label className="form-label">Title *</label>
+            <label className="form-label">TITLE *</label>
             <input className="form-input" placeholder="e.g. HEB Grocery Run" value={title} onChange={e => setTitle(e.target.value)} />
           </div>
           <div className="form-group">
-            <label className="form-label">Date</label>
+            <label className="form-label">DATE</label>
             <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
           <div className="form-group" style={{ gridColumn: '1 / 2' }}>
-            <label className="form-label">Category</label>
+            <label className="form-label">CATEGORY</label>
             <input className="form-input" placeholder="e.g. Groceries" value={category} onChange={e => setCategory(e.target.value)} />
           </div>
           <div className="form-group">
-            <label className="form-label">Tax ($)</label>
+            <label className="form-label">TAX ($)</label>
             <input className="form-input" type="number" min="0" step="0.01" value={tax} onChange={e => setTax(e.target.value)} />
           </div>
-          {/* FR-14: receipt URL simulates image upload */}
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-            <label className="form-label">Receipt image URL (FR-14)</label>
+            <label className="form-label">RECEIPT IMAGE URL</label>
             <input className="form-input" placeholder="https://…" value={receiptUrl} onChange={e => setReceiptUrl(e.target.value)} />
           </div>
         </div>
       </div>
 
       {/* Line items */}
-      <div className="card" style={{ marginBottom: '1.25rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h3 style={{ fontSize: 14, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.06em' }}>Line Items</h3>
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+          <h3 style={{ fontSize: 14, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>Line Items</h3>
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => setLineItems(p => [...p, BLANK_ITEM()])}>
-            + Add item
+            + ADD ITEM
           </button>
         </div>
         <div className="table-wrap">
@@ -185,7 +180,7 @@ export default function CreateEditBillPage() {
                 <th style={{ width: 80 }}>Qty</th>
                 <th style={{ width: 120 }}>Unit price</th>
                 <th style={{ width: 100, textAlign: 'right' }}>Subtotal</th>
-                <th style={{ width: 40 }}></th>
+                <th style={{ width: 60 }}></th>
               </tr>
             </thead>
             <tbody>
@@ -196,7 +191,7 @@ export default function CreateEditBillPage() {
                     <td>
                       <input
                         className="form-input"
-                        style={{ padding: '.4rem .6rem' }}
+                        style={{ padding: '.5rem .75rem' }}
                         placeholder="Item name"
                         value={item.name}
                         onChange={e => updateItem(idx, 'name', e.target.value)}
@@ -205,7 +200,7 @@ export default function CreateEditBillPage() {
                     <td>
                       <input
                         className="form-input"
-                        style={{ padding: '.4rem .6rem' }}
+                        style={{ padding: '.5rem .75rem' }}
                         type="number" min="0" step="1"
                         value={item.qty}
                         onChange={e => updateItem(idx, 'qty', e.target.value)}
@@ -214,20 +209,20 @@ export default function CreateEditBillPage() {
                     <td>
                       <input
                         className="form-input"
-                        style={{ padding: '.4rem .6rem' }}
+                        style={{ padding: '.5rem .75rem' }}
                         type="number" min="0" step="0.01"
                         value={item.unitPrice}
                         onChange={e => updateItem(idx, 'unitPrice', e.target.value)}
                       />
                     </td>
-                    <td style={{ textAlign: 'right', fontWeight: 600, color: '#a78bfa' }}>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--primary-dark)' }}>
                       ${sub.toFixed(2)}
                     </td>
                     <td>
                       <button
                         type="button"
                         className="btn btn-danger btn-sm"
-                        style={{ padding: '2px 8px' }}
+                        style={{ padding: '4px 10px' }}
                         onClick={() => setLineItems(p => p.filter((_, i) => i !== idx))}
                         disabled={lineItems.length === 1}
                       >
@@ -243,8 +238,8 @@ export default function CreateEditBillPage() {
       </div>
 
       {/* Split panel */}
-      <div className="card" style={{ marginBottom: '1.25rem' }}>
-        <h3 style={{ fontSize: 14, color: '#94a3b8', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '.06em' }}>Split Configuration</h3>
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <h3 style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: '1.25rem', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>Split Configuration</h3>
         <BillSplitPanel
           splitType={splitType}          onSplitTypeChange={setSplitType}
           roommates={roommates}          assignedRoommates={assignedRoommates}
@@ -256,25 +251,25 @@ export default function CreateEditBillPage() {
       </div>
 
       {/* Summary */}
-      <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', gap: '2rem', alignItems: 'center' }}>
+      <div className="card" style={{ marginBottom: '2rem', display: 'flex', gap: '2.5rem', alignItems: 'center' }}>
         <div>
-          <p style={{ fontSize: 12, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em' }}>Total</p>
-          <p style={{ fontSize: 28, fontWeight: 700, color: '#a78bfa' }}>${total.toFixed(2)}</p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 700 }}>Total</p>
+          <p style={{ fontSize: 36, fontWeight: 900, color: 'var(--primary-dark)' }}>${total.toFixed(2)}</p>
         </div>
         {splitType === 'evenly' && assignedRoommates.length > 0 && (
           <div>
-            <p style={{ fontSize: 12, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em' }}>Per person</p>
-            <p style={{ fontSize: 28, fontWeight: 700, color: '#86efac' }}>${perPerson.toFixed(2)}</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 700 }}>Per person</p>
+            <p style={{ fontSize: 36, fontWeight: 900, color: 'var(--success)' }}>${perPerson.toFixed(2)}</p>
           </div>
         )}
         <div>
-          <p style={{ fontSize: 12, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em' }}>Roommates</p>
-          <p style={{ fontSize: 28, fontWeight: 700 }}>{assignedRoommates.length}</p>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 700 }}>Roommates</p>
+          <p style={{ fontSize: 36, fontWeight: 900 }}>{assignedRoommates.length}</p>
         </div>
       </div>
 
-      <button className="btn btn-primary" onClick={handleSave} disabled={loading} style={{ padding: '.8rem 2rem', fontSize: 15 }}>
-        {loading ? 'Saving…' : isEdit ? 'Update bill' : 'Save bill'}
+      <button className="btn btn-success" onClick={handleSave} disabled={loading} style={{ padding: '1rem 3rem', fontSize: 14 }}>
+        {loading ? 'SAVING…' : isEdit ? 'UPDATE BILL' : 'SAVE BILL'}
       </button>
     </div>
   );

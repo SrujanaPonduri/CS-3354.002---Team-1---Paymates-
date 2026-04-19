@@ -1,17 +1,10 @@
 // src/pages/DuesPage.jsx
-// Use Case: UC06 — FR-15 (dues from bills), FR-16 (dues from expenses),
-// FR-21 (filter by status/user), FR-22 (mark paid / revert to pending).
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import client from '../api/client.js';
 import { useHome } from '../context/HomeContext.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
-
-const STATUS_COLORS = {
-  pending: { bg: 'rgba(251,146,60,.12)', border: '#f97316', text: '#fb923c' },
-  done:    { bg: 'rgba(74,222,128,.12)', border: '#22c55e', text: '#4ade80' },
-};
 
 export default function DuesPage() {
   const { homeId }       = useParams();
@@ -20,18 +13,16 @@ export default function DuesPage() {
   const [dues, setDues]             = useState([]);
   const [summary, setSummary]       = useState({ total_pending: 0, total_paid: 0 });
   const [roommates, setRoommates]   = useState([]);
-  const [statusFilter, setStatus]   = useState('');        // ''|'pending'|'done'
-  const [userFilter, setUserFilter] = useState('');        // '' = all members
+  const [statusFilter, setStatus]   = useState('');
+  const [userFilter, setUserFilter] = useState('');
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState('');
-  const [toggling, setToggling]     = useState('');        // due_id being toggled
+  const [toggling, setToggling]     = useState('');
 
-  // Fetch roommates once for the filter dropdown
   useEffect(() => {
     client.get(`/homes/${homeId}/roommates`)
       .then(r => {
         setRoommates(r.data.roommates);
-        // Default: show only current user's dues
         setUserFilter(currentUser?.id || '');
       })
       .catch(() => {});
@@ -46,8 +37,8 @@ export default function DuesPage() {
       const res = await client.get(`/homes/${homeId}/dues?${params}`);
       setDues(res.data.dues);
       setSummary({
-        total_pending: res.data.total_pending,
-        total_paid:    res.data.total_paid,
+        total_pending: res.data.total_pending || 0,
+        total_paid:    res.data.total_paid || 0,
       });
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to load dues.');
@@ -58,9 +49,7 @@ export default function DuesPage() {
 
   useEffect(() => { fetchDues(); }, [fetchDues]);
 
-  // FR-22: toggle a due between pending ↔ done
   const handleToggle = async (due) => {
-    // Only the user who owes the due can toggle it
     if (due.user_id !== currentUser?.id) {
       setError('You can only mark your own dues as paid.');
       return;
@@ -74,7 +63,6 @@ export default function DuesPage() {
         status:  newStatus,
       });
       setDues(prev => prev.map(d => d.id === due.id ? res.data.due : d));
-      // Recompute local summary
       setSummary(prev => ({
         total_pending: newStatus === 'done'
           ? prev.total_pending - due.amount
@@ -95,39 +83,54 @@ export default function DuesPage() {
   };
 
   const isOwnDue = (due) => due.user_id === currentUser?.id;
+  const totalOwed = summary.total_pending;
 
   return (
-    <div>
-      {/* Page header */}
+    <div className="main-content">
       <div className="page-header">
         <div>
-          <h1 className="page-title">💳 Dues</h1>
-          <p className="page-subtitle">Settlement tracking for bills and shared expenses</p>
+          <h1 className="page-title">Dues</h1>
+          <p className="page-subtitle">What you owe and what's owed to you</p>
         </div>
+        {totalOwed > 0 && (
+          <div
+            style={{
+              background: 'var(--warning)',
+              color: 'white',
+              padding: '0.85rem 1.75rem',
+              borderRadius: 'var(--r)',
+              border: '3px solid var(--border)',
+              fontWeight: 700,
+              fontSize: '20px',
+              boxShadow: '4px 4px 0 rgba(0,0,0,1)',
+            }}
+          >
+            Total Owed: ${totalOwed.toFixed(2)}
+          </div>
+        )}
       </div>
 
       {/* Summary cards */}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <div className="card" style={{ flex: 1, minWidth: 160, background: 'rgba(251,146,60,.08)', border: '1px solid rgba(249,115,22,.35)' }}>
-          <p style={{ fontSize: 12, color: '#fb923c', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Pending</p>
-          <p style={{ fontSize: 28, fontWeight: 700, color: '#fb923c' }}>${summary.total_pending.toFixed(2)}</p>
+        <div className="card" style={{ flex: 1, minWidth: '180px', background: 'rgba(255,149,0,0.08)', border: '2px solid var(--warning)' }}>
+          <p style={{ fontSize: '12px', color: 'var(--warning)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.5rem' }}>PENDING</p>
+          <p style={{ fontSize: '32px', fontWeight: 700, color: 'var(--warning)' }}>${summary.total_pending.toFixed(2)}</p>
         </div>
-        <div className="card" style={{ flex: 1, minWidth: 160, background: 'rgba(74,222,128,.08)', border: '1px solid rgba(34,197,94,.35)' }}>
-          <p style={{ fontSize: 12, color: '#4ade80', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Paid</p>
-          <p style={{ fontSize: 28, fontWeight: 700, color: '#4ade80' }}>${summary.total_paid.toFixed(2)}</p>
+        <div className="card" style={{ flex: 1, minWidth: '180px', background: 'rgba(0,208,132,0.08)', border: '2px solid var(--success)' }}>
+          <p style={{ fontSize: '12px', color: 'var(--success)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.5rem' }}>PAID</p>
+          <p style={{ fontSize: '32px', fontWeight: 700, color: 'var(--success)' }}>${summary.total_paid.toFixed(2)}</p>
         </div>
-        <div className="card" style={{ flex: 1, minWidth: 160 }}>
-          <p style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>Total</p>
-          <p style={{ fontSize: 28, fontWeight: 700 }}>${(summary.total_pending + summary.total_paid).toFixed(2)}</p>
+        <div className="card" style={{ flex: 1, minWidth: '180px' }}>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.5rem' }}>TOTAL</p>
+          <p style={{ fontSize: '32px', fontWeight: 700 }}>${(summary.total_pending + summary.total_paid).toFixed(2)}</p>
         </div>
       </div>
 
       <ErrorBanner message={error} onDismiss={() => setError('')} />
 
-      {/* FR-21 filters */}
-      <div style={{ display: 'flex', gap: '.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        {/* Status filter */}
-        <div style={{ display: 'flex', gap: 4 }}>
+      {/* Filters */} 
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
           {[['', 'All'], ['pending', 'Pending'], ['done', 'Paid']].map(([val, label]) => (
             <button
               key={val}
@@ -137,12 +140,11 @@ export default function DuesPage() {
               {label}
             </button>
           ))}
-        </div>
+        </div> 
 
-        {/* User filter — FR-21 */}
         <select
           className="form-select"
-          style={{ width: 200 }}
+          style={{ width: '220px' }}
           value={userFilter}
           onChange={e => setUserFilter(e.target.value)}
         >
@@ -153,19 +155,21 @@ export default function DuesPage() {
             </option>
           ))}
         </select>
-      </div>
+      </div> 
 
-      {/* Dues list */}
+      
       {loading ? (
         <p className="text-muted">Loading dues…</p>
       ) : dues.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">💳</div>
-          <p className="empty-title">No dues found</p>
-          <p className="empty-text">
+          <div className="empty-icon">✅</div>
+          <p className="empty-title">
+            {statusFilter || userFilter ? 'No dues found' : 'All settled up!'}
+          </p>
+          <p className="text-muted">
             {statusFilter || userFilter
               ? 'Try adjusting your filters.'
-              : 'Create a bill or expense — dues are generated automatically.'}
+              : 'You do not owe anyone right now.'}
           </p>
         </div>
       ) : (
@@ -173,83 +177,88 @@ export default function DuesPage() {
           <table>
             <thead>
               <tr>
-                <th>Roommate</th>
-                <th>Source</th>
-                <th>Type</th>
-                <th>Due date</th>
-                <th style={{ textAlign: 'right' }}>Amount</th>
-                <th>Status</th>
+                <th>ROOMMATE</th>
+                <th>SOURCE</th>
+                <th>TYPE</th>
+                <th>DUE DATE</th>
+                <th style={{ textAlign: 'right' }}>AMOUNT</th>
+                <th>STATUS</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {dues.map(due => {
-                const sc = STATUS_COLORS[due.status] || STATUS_COLORS.pending;
+              {dues.map((due) => {
                 const own = isOwnDue(due);
+                const statusColor = due.status === 'done' ? 'var(--success)' : 'var(--warning)';
+                
                 return (
                   <tr key={due.id} style={{ opacity: due.status === 'done' ? 0.65 : 1 }}>
-                    {/* Roommate */}
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div className="avatar" style={{ fontSize: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div className="avatar" style={{ width: '32px', height: '32px', fontSize: '12px' }}>
                           {(due.user_name || '?').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="fw-600" style={{ fontSize: 14 }}>
+                          <div style={{ fontWeight: 600, fontSize: '14px' }}>
                             {due.user_name}
-                            {own && <span className="badge badge-purple" style={{ marginLeft: 6, fontSize: 10 }}>You</span>}
+                            {own && (
+                              <span className="badge" style={{ marginLeft: '0.5rem', background: 'var(--accent)', color: 'white', fontSize: '10px' }}>
+                                YOU
+                              </span>
+                            )}
                           </div>
-                          <div style={{ fontSize: 12, color: '#64748b' }}>{due.user_email}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{due.user_email}</div>
                         </div>
                       </div>
                     </td>
 
-                    {/* Source bill/expense title */}
-                    <td className="fw-600" style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <td style={{ fontWeight: 600, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {due.source_title}
                     </td>
 
-                    {/* FR-15 vs FR-16 badge */}
                     <td>
                       <span className={`badge ${due.source_type === 'bill' ? 'badge-orange' : 'badge-blue'}`}>
-                        {due.source_type === 'bill' ? '🧾 Bill' : '💸 Expense'}
+                        {due.source_type === 'bill' ? '🧾 BILL' : '💸 EXPENSE'}
                       </span>
                     </td>
 
                     <td className="text-muted">{due.due_date || '—'}</td>
 
-                    {/* Amount */}
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: '#a78bfa' }}>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--accent)' }}>
                       ${due.amount.toFixed(2)}
                     </td>
 
-                    {/* Status badge */}
                     <td>
                       <span style={{
-                        padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-                        background: sc.bg, border: `1px solid ${sc.border}`, color: sc.text,
+                        padding: '4px 12px',
+                        borderRadius: '50px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        background: due.status === 'done' ? 'rgba(0,208,132,0.12)' : 'rgba(255,149,0,0.12)',
+                        border: `2px solid ${statusColor}`,
+                        color: statusColor,
+                        textTransform: 'uppercase',
                       }}>
-                        {due.status === 'done' ? '✓ Paid' : '⏳ Pending'}
+                        {due.status === 'done' ? '✓ PAID' : '⏳ PENDING'}
                       </span>
                     </td>
 
-                    {/* FR-22: toggle action — only available for own dues */}
                     <td>
                       {own ? (
                         <button
-                          className={`btn btn-sm ${due.status === 'done' ? 'btn-secondary' : 'btn-primary'}`}
+                          className={`btn btn-sm ${due.status === 'done' ? 'btn-secondary' : 'btn-success'}`}
                           onClick={() => handleToggle(due)}
                           disabled={toggling === due.id}
-                          style={{ fontSize: 12, minWidth: 90 }}
+                          style={{ minWidth: '100px', fontSize: '12px' }}
                         >
                           {toggling === due.id
                             ? '…'
                             : due.status === 'done'
-                            ? 'Mark unpaid'
-                            : 'Mark paid ✓'}
+                            ? 'MARK UNPAID'
+                            : 'MARK PAID'}
                         </button>
                       ) : (
-                        <span style={{ fontSize: 12, color: '#475569' }}>—</span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>—</span>
                       )}
                     </td>
                   </tr>

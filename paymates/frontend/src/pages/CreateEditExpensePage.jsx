@@ -1,6 +1,4 @@
 // src/pages/CreateEditExpensePage.jsx
-// Use Case: UC05 — FR-07, FR-08: create or edit a shared expense.
-// Handles one-time and recurring frequencies; computes next_due_date in browser.
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -36,7 +34,6 @@ export default function CreateEditExpensePage() {
   const [loading, setLoading]               = useState(false);
   const [error, setError]                   = useState('');
 
-  // Compute next due date in the browser — no API call needed
   const nextDuePreview = useMemo(
     () => expenseType === 'recurring' ? addFrequency(startDate, frequency) : null,
     [expenseType, frequency, startDate]
@@ -105,41 +102,41 @@ export default function CreateEditExpensePage() {
   };
 
   return (
-    <div style={{ maxWidth: 620 }}>
+    <div style={{ maxWidth: 720 }}>
       <div className="page-header">
         <div>
           <h1 className="page-title">{isEdit ? '✏️ Edit Expense' : '💸 New Expense'}</h1>
           <p className="page-subtitle">{isEdit ? 'Update expense details' : 'Add a shared or recurring cost'}</p>
         </div>
         <button className="btn btn-secondary" onClick={() => navigate(`/homes/${homeId}/expenses`)}>
-          Cancel
+          CANCEL
         </button>
       </div>
 
       <ErrorBanner message={error} onDismiss={() => setError('')} />
 
-      <div className="card" style={{ marginBottom: '1.25rem' }}>
-        <h3 style={{ fontSize: 14, color: '#94a3b8', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '.06em' }}>Details</h3>
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <h3 style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: '1.25rem', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>Details</h3>
 
         <div className="form-group">
-          <label className="form-label">Title *</label>
+          <label className="form-label">TITLE *</label>
           <input className="form-input" placeholder="e.g. Monthly Rent" value={title} onChange={e => setTitle(e.target.value)} />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
           <div className="form-group">
-            <label className="form-label">Amount ($) *</label>
+            <label className="form-label">AMOUNT ($) *</label>
             <input className="form-input" type="number" min="0.01" step="0.01" placeholder="0.00" value={amount} onChange={e => setAmount(e.target.value)} />
           </div>
           <div className="form-group">
-            <label className="form-label">Start date</label>
+            <label className="form-label">START DATE</label>
             <input className="form-input" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
           </div>
         </div>
 
         <div className="form-group">
-          <label className="form-label">Expense type</label>
-          <div style={{ display: 'flex', gap: '.75rem' }}>
+          <label className="form-label">EXPENSE TYPE</label>
+          <div style={{ display: 'flex', gap: '1rem' }}>
             {['one_time', 'recurring'].map(t => (
               <label key={t} className="checkbox-row" style={{ cursor: 'pointer' }}>
                 <input type="radio" name="expenseType" value={t} checked={expenseType === t} onChange={() => setExpenseType(t)} />
@@ -149,11 +146,10 @@ export default function CreateEditExpensePage() {
           </div>
         </div>
 
-        {/* Recurring frequency + live next-due preview */}
         {expenseType === 'recurring' && (
           <div>
             <div className="form-group">
-              <label className="form-label">Frequency</label>
+              <label className="form-label">FREQUENCY</label>
               <select className="form-select" value={frequency} onChange={e => setFrequency(e.target.value)}>
                 {FREQUENCIES.map(f => (
                   <option key={f} value={f}>{f.charAt(0).toUpperCase() + f.slice(1)}</option>
@@ -161,7 +157,7 @@ export default function CreateEditExpensePage() {
               </select>
             </div>
             {nextDuePreview && (
-              <div style={{ padding: '.6rem 1rem', background: 'rgba(124,58,237,.12)', borderRadius: 8, fontSize: 13, color: '#a78bfa', marginBottom: '.75rem' }}>
+              <div style={{ padding: '.85rem 1.25rem', background: 'var(--accent-light)', border: '2px solid var(--accent)', borderRadius: 'var(--r)', fontSize: 14, color: 'var(--accent)', marginBottom: '1rem', fontWeight: 600 }}>
                 📅 Next due: <strong>{nextDuePreview}</strong>
               </div>
             )}
@@ -169,27 +165,27 @@ export default function CreateEditExpensePage() {
         )}
       </div>
 
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ fontSize: 14, color: '#94a3b8', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '.06em' }}>Assign to</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
+      <div className="card" style={{ marginBottom: '2rem' }}>
+        <h3 style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: '1.25rem', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>Assign to</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
           {roommates.map(r => (
             <label key={r.id} className="checkbox-row">
               <input type="checkbox" checked={assignedTo.includes(r.id)} onChange={() => toggleAssigned(r.id)} />
-              <span>{r.name}</span>
-              <span style={{ color: '#64748b', fontSize: 12 }}>({r.email})</span>
+              <span className="fw-600">{r.name}</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>({r.email})</span>
             </label>
           ))}
         </div>
         {assignedTo.length > 0 && amount && (
-          <div style={{ marginTop: '.75rem', padding: '.6rem 1rem', background: '#252540', borderRadius: 8, fontSize: 13 }}>
-            Each owes: <strong style={{ color: '#a78bfa' }}>${(parseFloat(amount) / assignedTo.length).toFixed(2)}</strong>
+          <div style={{ marginTop: '1rem', padding: '.85rem 1.25rem', background: 'var(--surface-2)', border: '2px solid var(--border-light)', borderRadius: 'var(--r)', fontSize: 14 }}>
+            Each owes: <strong style={{ color: 'var(--primary-dark)', fontSize: 16 }}>${(parseFloat(amount) / assignedTo.length).toFixed(2)}</strong>
             {' '}({assignedTo.length} people)
           </div>
         )}
       </div>
 
-      <button className="btn btn-primary" onClick={handleSave} disabled={loading} style={{ padding: '.8rem 2rem', fontSize: 15 }}>
-        {loading ? 'Saving…' : isEdit ? 'Update expense' : 'Save expense'}
+      <button className="btn btn-success" onClick={handleSave} disabled={loading} style={{ padding: '1rem 3rem', fontSize: 14 }}>
+        {loading ? 'SAVING…' : isEdit ? 'UPDATE EXPENSE' : 'SAVE EXPENSE'}
       </button>
     </div>
   );

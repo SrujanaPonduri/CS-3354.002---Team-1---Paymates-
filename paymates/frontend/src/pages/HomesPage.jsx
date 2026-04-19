@@ -1,6 +1,4 @@
 // src/pages/HomesPage.jsx
-// Use Case: UC02 — TC1–TC6 dashboard: lists all homes the user belongs to,
-// provides create and delete-vote actions, and shows leave-home per TC6.
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -10,13 +8,13 @@ import ErrorBanner from '../components/ErrorBanner.jsx';
 import DeleteHomeModal from '../components/DeleteHomeModal.jsx';
 
 export default function HomesPage() {
-  const { currentUser }       = useHome();
+  const { currentUser } = useHome();
   const navigate              = useNavigate();
   const [homes, setHomes]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
-  const [deleteTarget, setDeleteTarget] = useState(null); // home to vote-delete
-  const [leaveLoading, setLeaveLoading] = useState('');   // home_id being left
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [leaveLoading, setLeaveLoading] = useState('');
 
   const fetchHomes = useCallback(async () => {
     if (!currentUser) return;
@@ -33,7 +31,6 @@ export default function HomesPage() {
 
   useEffect(() => { fetchHomes(); }, [fetchHomes]);
 
-  // TC6 — leave a home
   const handleLeave = async (homeId, homeName) => {
     if (!window.confirm(`Leave "${homeName}"? You will need a new invite to rejoin.`)) return;
     setLeaveLoading(homeId);
@@ -53,14 +50,14 @@ export default function HomesPage() {
   };
 
   return (
-    <div>
+    <div className="main-content">
       <div className="page-header">
         <div>
-          <h1 className="page-title">🏠 My Homes</h1>
-          <p className="page-subtitle">All shared homes you belong to</p>
+          <h1 className="page-title">Your Homes</h1>
+          <p className="page-subtitle">Manage your shared living spaces</p>
         </div>
-        <button className="btn btn-primary" onClick={() => navigate('/homes/new')}>
-          + Create home
+        <button className="btn btn-success" onClick={() => navigate('/homes/new')}>
+          + CREATE HOME
         </button>
       </div>
 
@@ -72,57 +69,57 @@ export default function HomesPage() {
         <div className="empty-state">
           <div className="empty-icon">🏠</div>
           <p className="empty-title">No homes yet</p>
-          <p className="empty-text">Create a home to get started, or ask a roommate to send you an invite.</p>
-          <button className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={() => navigate('/homes/new')}>
+          <p className="text-muted">Create a home to get started with your roommates.</p>
+          <button className="btn btn-success" style={{ marginTop: '1.5rem' }} onClick={() => navigate('/homes/new')}>
             Create your first home
           </button>
         </div>
       ) : (
         <div className="card-grid">
-          {homes.map(home => {
+          {homes.map((home) => {
             const alreadyVoted = home.deletion_votes?.includes(currentUser?.id);
             return (
-              <div key={home.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
+              <div key={home.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
                 {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{home.name}</h2>
-                    <p style={{ fontSize: 13, color: '#64748b' }}>{home.address || 'No address set'}</p>
-                  </div>
+                <div>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '0.5rem' }}>{home.name}</h3>
+                  <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>{home.address || 'No address set'}</p>
                   {home.is_creator && (
-                    <span className="badge badge-purple">Creator</span>
+                    <span className="badge" style={{ background: 'var(--accent)', color: 'white', marginTop: '0.5rem' }}>
+                      CREATOR
+                    </span>
                   )}
                 </div>
 
                 {/* Stats */}
-                <div style={{ display: 'flex', gap: '1.5rem', fontSize: 13, color: '#94a3b8' }}>
+                <div style={{ display: 'flex', gap: '1.5rem', fontSize: '14px', color: 'var(--text-muted)' }}>
                   <span>👥 {home.member_count} member{home.member_count !== 1 ? 's' : ''}</span>
                   {home.votes_cast > 0 && (
-                    <span style={{ color: '#fca5a5' }}>
+                    <span style={{ color: 'var(--error)' }}>
                       🗳 {home.votes_cast}/{home.member_count} deletion votes
                     </span>
                   )}
                 </div>
 
                 {/* Actions */}
-                <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginTop: 'auto', paddingTop: '.75rem', borderTop: '1px solid #2d2d4a' }}>
-                  <Link to={`/homes/${home.id}/inventory`} className="btn btn-primary btn-sm">
-                    Enter →
+                <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto', paddingTop: '1rem', borderTop: '2px solid var(--border-light)' }}>
+                  <Link to={`/homes/${home.id}/inventory`} className="btn btn-success" style={{ textDecoration: 'none', flex: 1 }}>
+                    ENTER →
                   </Link>
                   <button
-                    className="btn btn-secondary btn-sm"
+                    className="btn btn-secondary"
                     onClick={() => handleLeave(home.id, home.name)}
                     disabled={leaveLoading === home.id}
+                    style={{ flex: 1 }}
                   >
-                    Leave
+                    {leaveLoading === home.id ? 'LEAVING...' : 'LEAVE'}
                   </button>
                   <button
-                    className="btn btn-danger btn-sm"
+                    className="btn btn-danger"
                     onClick={() => setDeleteTarget(home)}
-                    style={{ marginLeft: 'auto' }}
                     title={alreadyVoted ? 'You already voted to delete' : 'Vote to delete home'}
                   >
-                    {alreadyVoted ? '🗳 Voted' : 'Delete'}
+                    {alreadyVoted ? '✓ VOTED' : 'DELETE'}
                   </button>
                 </div>
               </div>

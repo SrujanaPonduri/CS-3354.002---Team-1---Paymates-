@@ -1,6 +1,4 @@
 // src/pages/MagicLinkSentPage.jsx
-// Use Case: UC01 — FR-04: simulates clicking the magic-link email.
-// Reads the token from location.state and verifies it via GET /auth/verify/<token>.
 
 import React, { useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
@@ -25,12 +23,9 @@ export default function MagicLinkSentPage() {
       const { email, user } = res.data;
 
       if (user) {
-        // Returning user — account already fully set up (e.g. seeded demo users).
-        // Save them to context + localStorage and go straight to the app.
         setCurrentUser(user);
-        navigate('/homes/home-demo/inventory');
+        navigate('/homes');
       } else {
-        // New user — still needs to complete profile setup.
         navigate('/account-setup', { state: { token, email } });
       }
     } catch (err) {
@@ -47,11 +42,14 @@ export default function MagicLinkSentPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo">✉️</div>
-        <h1 className="auth-title">Your magic link is ready</h1>
-        <p className="auth-subtitle">
-          Click the button below to continue — this simulates clicking the link
-          from the email sent to <strong style={{ color: '#a78bfa' }}>{state?.email}</strong>.
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{ fontSize: '48px', marginBottom: '1rem' }}>Mail</div>
+        </div>
+        
+        <h1 className="auth-title" style={{ textAlign: 'center' }}>Your magic link is ready</h1>
+        <p className="auth-subtitle" style={{ textAlign: 'center' }}>
+          Click below to continue — this simulates clicking the link from the email sent to{' '}
+          <strong style={{ color: '#7C5FFF' }}>{state?.email}</strong>.
         </p>
 
         <ErrorBanner message={error} onDismiss={() => setError('')} />
@@ -61,7 +59,7 @@ export default function MagicLinkSentPage() {
           onClick={handleVerify}
           disabled={loading || !token}
         >
-          {loading ? 'Verifying…' : 'Verify and continue →'}
+          {loading ? 'VERIFYING...' : 'VERIFY AND CONTINUE →'}
         </button>
 
         {!token && (
