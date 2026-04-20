@@ -26,9 +26,6 @@ This application targets all households with multiple financially independent re
 - Log payments
 - Search for payments by person, expense, or budget; purchasers are the owners of the purchase
 
-### Future Scope:
-Aagam
-
 ### Potential Risks:
 - **Undefined Scope** - The scale of features such as splitting payments, tracking based on use and purchase history, and budgeting may reach too far outside scope
 - **Calculations** - Errors in payment calculations may result in the incorrect transaction of money from/to the app which can lead to later budgeting and payment splitting info to be inaccurate
