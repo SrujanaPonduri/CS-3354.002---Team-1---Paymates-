@@ -1,6 +1,4 @@
 // src/components/BillSplitPanel.jsx
-// Use Case: UC04 — FR-11 (evenly), FR-12 (by item), FR-13 (fixed amount).
-// Renders the split-type selector and the appropriate controls for each strategy.
 
 import React from 'react';
 
@@ -30,8 +28,8 @@ export default function BillSplitPanel({
   return (
     <div>
       {/* Split type radio buttons */}
-      <div style={{ marginBottom: '1.25rem' }}>
-        <p style={{ fontSize: 13, color: '#94a3b8', fontWeight: 600, marginBottom: '.6rem', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+      <div style={{ marginBottom: '1.5rem' }}>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 700, marginBottom: '.85rem', textTransform: 'uppercase', letterSpacing: '.05em' }}>
           Split method
         </p>
         <div className="split-radio-group">
@@ -48,13 +46,13 @@ export default function BillSplitPanel({
         </div>
       </div>
 
-      {/* ── FR-11 — Split evenly ── */}
+      {/* ── Split evenly ── */}
       {splitType === 'evenly' && (
         <div>
-          <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: '.75rem' }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: '1rem', fontWeight: 600 }}>
             Select who shares this bill:
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem', marginBottom: '.75rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem', marginBottom: '1rem' }}>
             {roommates.map(r => (
               <label key={r.id} className="checkbox-row">
                 <input
@@ -62,15 +60,15 @@ export default function BillSplitPanel({
                   checked={assignedRoommates.includes(r.id)}
                   onChange={() => toggleAssigned(r.id)}
                 />
-                <span>{r.name}</span>
-                <span style={{ color: '#64748b', fontSize: 12 }}>({r.email})</span>
+                <span className="fw-600">{r.name}</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>({r.email})</span>
               </label>
             ))}
           </div>
           {assignedRoommates.length > 0 && (
-            <div style={{ padding: '.75rem', background: '#252540', borderRadius: 8, fontSize: 14 }}>
+            <div style={{ padding: '1rem 1.25rem', background: 'var(--surface-2)', border: '2px solid var(--border-light)', borderRadius: 'var(--r)', fontSize: 14 }}>
               Each owes:{' '}
-              <strong style={{ color: '#a78bfa' }}>
+              <strong style={{ color: 'var(--primary-dark)', fontSize: 16 }}>
                 ${(total / assignedRoommates.length).toFixed(2)}
               </strong>
               {' '}({assignedRoommates.length} people)
@@ -79,36 +77,36 @@ export default function BillSplitPanel({
         </div>
       )}
 
-      {/* ── FR-12 — Split by item ── */}
+      {/* ── Split by item ── */}
       {splitType === 'by_item' && (
         <div>
-          <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: '.75rem' }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: '1rem', fontWeight: 600 }}>
             Assign owners to each line item:
           </p>
           {lineItems.length === 0 ? (
-            <p style={{ color: '#64748b', fontSize: 13 }}>Add line items above first.</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Add line items above first.</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 1, borderRadius: 8, overflow: 'hidden', border: '1px solid #2d2d4a' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1, borderRadius: 'var(--r)', overflow: 'hidden', border: '2px solid var(--border)' }}>
               {lineItems.map((item, idx) => {
                 const subtotal = (parseFloat(item.qty) || 0) * (parseFloat(item.unitPrice) || 0);
                 return (
-                  <div key={idx} style={{ padding: '.875rem 1rem', background: '#1c1c2e', borderBottom: '1px solid #2d2d4a' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '.5rem' }}>
-                      <span className="fw-600" style={{ fontSize: 14 }}>{item.name || `Item ${idx + 1}`}</span>
-                      <span style={{ color: '#a78bfa', fontSize: 14 }}>${subtotal.toFixed(2)}</span>
+                  <div key={idx} style={{ padding: '1rem 1.25rem', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-light)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '.75rem' }}>
+                      <span className="fw-700" style={{ fontSize: 14 }}>{item.name || `Item ${idx + 1}`}</span>
+                      <span style={{ color: 'var(--primary-dark)', fontSize: 14, fontWeight: 700 }}>${subtotal.toFixed(2)}</span>
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.4rem' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.5rem' }}>
                       {roommates.map(r => {
                         const owners = item.ownerIds || [];
                         const checked = owners.includes(r.id);
                         return (
                           <label key={r.id} style={{
-                            display: 'flex', alignItems: 'center', gap: 5,
-                            padding: '3px 10px', borderRadius: 999, fontSize: 12,
-                            cursor: 'pointer', fontWeight: 500,
-                            background: checked ? 'rgba(124,58,237,.2)' : '#252540',
-                            border: `1px solid ${checked ? '#7c3aed' : '#2d2d4a'}`,
-                            color: checked ? '#a78bfa' : '#94a3b8',
+                            display: 'flex', alignItems: 'center', gap: 6,
+                            padding: '5px 12px', borderRadius: 999, fontSize: 12,
+                            cursor: 'pointer', fontWeight: 600,
+                            background: checked ? 'var(--primary)' : 'var(--surface)',
+                            border: `2px solid ${checked ? 'var(--border)' : 'var(--border-light)'}`,
+                            color: checked ? 'var(--primary-dark)' : 'var(--text-muted)',
                           }}>
                             <input
                               type="checkbox"
@@ -133,7 +131,7 @@ export default function BillSplitPanel({
           )}
           {/* Running subtotal per roommate */}
           {roommates.length > 0 && (
-            <div style={{ marginTop: '.75rem', padding: '.75rem', background: '#252540', borderRadius: 8 }}>
+            <div style={{ marginTop: '1rem', padding: '1rem 1.25rem', background: 'var(--surface-2)', border: '2px solid var(--border-light)', borderRadius: 'var(--r)' }}>
               {roommates.map(r => {
                 const owes = lineItems.reduce((sum, item) => {
                   const owners = item.ownerIds || [];
@@ -142,9 +140,9 @@ export default function BillSplitPanel({
                   return sum + subtotal / owners.length;
                 }, 0);
                 return owes > 0 ? (
-                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '3px 0' }}>
-                    <span style={{ color: '#94a3b8' }}>{r.name}</span>
-                    <span style={{ color: '#a78bfa', fontWeight: 600 }}>${owes.toFixed(2)}</span>
+                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>{r.name}</span>
+                    <span style={{ color: 'var(--primary-dark)', fontWeight: 700 }}>${owes.toFixed(2)}</span>
                   </div>
                 ) : null;
               })}
@@ -153,15 +151,15 @@ export default function BillSplitPanel({
         </div>
       )}
 
-      {/* ── FR-13 — Fixed amounts ── */}
+      {/* ── Fixed amounts ── */}
       {splitType === 'fixed_amount' && (
         <div>
-          <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: '.75rem' }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: '1rem', fontWeight: 600 }}>
             Enter each person's fixed share (must sum to bill total):
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem', marginBottom: '.75rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem', marginBottom: '1rem' }}>
             {roommates.map(r => (
-              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}>
+              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <label className="checkbox-row" style={{ flex: 1 }}>
                   <input
                     type="checkbox"
@@ -175,7 +173,7 @@ export default function BillSplitPanel({
                       }
                     }}
                   />
-                  <span>{r.name}</span>
+                  <span className="fw-600">{r.name}</span>
                 </label>
                 {assignedRoommates.includes(r.id) && (
                   <input
@@ -184,7 +182,7 @@ export default function BillSplitPanel({
                     step="0.01"
                     placeholder="0.00"
                     className="form-input"
-                    style={{ width: 100 }}
+                    style={{ width: 120 }}
                     value={fixedAmounts[r.id] ?? ''}
                     onChange={e => onFixedAmountsChange({ ...fixedAmounts, [r.id]: e.target.value })}
                   />
@@ -193,23 +191,23 @@ export default function BillSplitPanel({
             ))}
           </div>
           <div style={{
-            padding: '.75rem', borderRadius: 8,
-            background: fixedDiff > 0.01 ? '#450a0a' : '#052e16',
-            border: `1px solid ${fixedDiff > 0.01 ? '#b91c1c' : '#166534'}`,
+            padding: '1rem 1.25rem', borderRadius: 'var(--r)',
+            background: fixedDiff > 0.01 ? 'var(--error-bg)' : 'rgba(0,208,132,.08)',
+            border: `2px solid ${fixedDiff > 0.01 ? 'var(--error-border)' : 'var(--success)'}`,
             fontSize: 13,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Assigned total</span>
-              <strong style={{ color: fixedDiff > 0.01 ? '#fca5a5' : '#86efac' }}>
+              <strong style={{ color: fixedDiff > 0.01 ? 'var(--error)' : 'var(--success)' }}>
                 ${fixedSum.toFixed(2)}
               </strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
               <span>Bill total</span>
               <strong>${total.toFixed(2)}</strong>
             </div>
             {fixedDiff > 0.01 && (
-              <p style={{ color: '#fca5a5', marginTop: 6 }}>
+              <p style={{ color: 'var(--error)', marginTop: 8, fontWeight: 600 }}>
                 ⚠ Amounts must sum to ${total.toFixed(2)} (off by ${fixedDiff.toFixed(2)})
               </p>
             )}

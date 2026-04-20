@@ -1,5 +1,4 @@
 // src/components/ErrorBanner.jsx
-// Reusable dismissible error banner — used by every page and modal.
 
 import React from 'react';
 

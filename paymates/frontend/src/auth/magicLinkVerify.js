@@ -9,8 +9,9 @@ import client from '../api/client.js';
  */
 export async function verifyMagicLinkAndRoute({ token, navigate, setCurrentUser }) {
   const res = await client.get(`/auth/verify/${encodeURIComponent(token)}`);
-  const { email, user } = res.data;
+  const { email, user, token: sessionToken } = res.data;
   if (user) {
+    if (sessionToken) localStorage.setItem('paymates_token', sessionToken);
     setCurrentUser(user);
     navigate('/homes/home-demo/inventory');
   } else {

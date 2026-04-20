@@ -1,5 +1,4 @@
 // src/components/ItemOwnershipModal.jsx
-// Use Case: UC07 — FR-19, FR-33, FR-34: add and remove owners on an inventory item.
 
 import React, { useState } from 'react';
 import client from '../api/client.js';
@@ -15,7 +14,6 @@ export default function ItemOwnershipModal({ item, currentUserId, allRoommates, 
   const ownerObjects = owners.map(uid => allRoommates.find(r => r.id === uid) || { id: uid, name: uid });
 
   const handleRemove = async (ownerId) => {
-    // This enforces the UC07 guard: minimum one owner at all times
     if (owners.length <= 1) {
       setError('An item must have at least one owner.');
       return;
@@ -71,23 +69,23 @@ export default function ItemOwnershipModal({ item, currentUserId, allRoommates, 
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <h2 className="modal-title">🔑 Manage Ownership</h2>
-        <p style={{ fontSize: 14, color: '#94a3b8', marginBottom: '1.25rem' }}>
-          <strong style={{ color: '#e2e8f0' }}>{item.name}</strong> · {item.category}
+        <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+          <strong style={{ color: 'var(--text)' }}>{item.name}</strong> · {item.category}
         </p>
 
         <ErrorBanner message={error} onDismiss={() => setError('')} />
 
         {/* Current owners */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <p style={{ fontSize: 12, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '.6rem' }}>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '.85rem', fontWeight: 700 }}>
             Current owners
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
             {ownerObjects.map(owner => (
-              <div key={owner.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.6rem .85rem', background: '#252540', borderRadius: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div key={owner.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.85rem 1rem', background: 'var(--surface-2)', border: '2px solid var(--border-light)', borderRadius: 'var(--r)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div className="avatar">{(owner.name || '?').charAt(0).toUpperCase()}</div>
-                  <span style={{ fontSize: 14, fontWeight: 500 }}>{owner.name}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600 }}>{owner.name}</span>
                   {owner.id === currentUserId && (
                     <span className="badge badge-purple" style={{ fontSize: 10 }}>You</span>
                   )}
@@ -98,7 +96,7 @@ export default function ItemOwnershipModal({ item, currentUserId, allRoommates, 
                   disabled={loading || owners.length <= 1}
                   title={owners.length <= 1 ? 'Cannot remove last owner' : 'Remove owner'}
                 >
-                  Remove
+                  REMOVE
                 </button>
               </div>
             ))}
@@ -108,10 +106,10 @@ export default function ItemOwnershipModal({ item, currentUserId, allRoommates, 
         {/* Add new owner */}
         {nonOwners.length > 0 && (
           <div>
-            <p style={{ fontSize: 12, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '.6rem' }}>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '.85rem', fontWeight: 700 }}>
               Add owner
             </p>
-            <div style={{ display: 'flex', gap: '.75rem' }}>
+            <div style={{ display: 'flex', gap: '1rem' }}>
               <select
                 className="form-select"
                 value={newOwnerId}
@@ -123,18 +121,18 @@ export default function ItemOwnershipModal({ item, currentUserId, allRoommates, 
                 ))}
               </select>
               <button
-                className="btn btn-primary"
+                className="btn btn-success"
                 onClick={handleAdd}
                 disabled={loading || !newOwnerId}
               >
-                Add
+                ADD
               </button>
             </div>
           </div>
         )}
 
         <div className="modal-actions">
-          <button className="btn btn-secondary" onClick={onClose}>Done</button>
+          <button className="btn btn-secondary" onClick={onClose}>DONE</button>
         </div>
       </div>
     </div>

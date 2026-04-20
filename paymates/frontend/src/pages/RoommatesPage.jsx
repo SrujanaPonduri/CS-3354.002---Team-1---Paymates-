@@ -1,5 +1,4 @@
 // src/pages/RoommatesPage.jsx
-// Use Case: UC03 — FR-02: view roommate list, invite new member, leave home.
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
@@ -37,7 +36,7 @@ export default function RoommatesPage() {
     setError('');
     try {
       await client.delete(`/homes/${homeId}/leave`, { data: { user_id: currentUser.id } });
-      window.location.href = '/login';
+      window.location.href = '/homes';
     } catch (err) {
       if (err.response?.status === 400) {
         setError('You are the last member and cannot leave.');
@@ -49,18 +48,22 @@ export default function RoommatesPage() {
   };
 
   return (
-    <div>
+    <div className="main-content">
       <div className="page-header">
         <div>
-          <h1 className="page-title">👥 Roommates</h1>
+          <h1 className="page-title">Roommates</h1>
           <p className="page-subtitle">Everyone living in this home</p>
         </div>
-        <div style={{ display: 'flex', gap: '.75rem' }}>
-          <button className="btn btn-primary" onClick={() => setShowInvite(true)}>
-            + Invite roommate
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button className="btn btn-success" onClick={() => setShowInvite(true)}>
+            + INVITE
           </button>
-          <button className="btn btn-danger btn-sm" onClick={handleLeave} disabled={leaving}>
-            Leave home
+          <button
+            className="btn btn-danger"
+            onClick={handleLeave}
+            disabled={leaving}
+          >
+            LEAVE HOME
           </button>
         </div>
       </div>
@@ -73,35 +76,45 @@ export default function RoommatesPage() {
         <div className="empty-state">
           <div className="empty-icon">🏠</div>
           <p className="empty-title">No roommates yet</p>
-          <p className="empty-text">Invite someone to join your home!</p>
+          <p className="text-muted">Invite someone to join your home!</p>
         </div>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>You?</th>
+                <th>NAME</th>
+                <th>EMAIL</th>
+                <th>PHONE</th>
               </tr>
             </thead>
             <tbody>
-              {roommates.map(r => (
-                <tr key={r.id}>
+              {roommates.map((rm) => (
+                <tr key={rm.id}>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div className="avatar">{(r.name || '?').charAt(0).toUpperCase()}</div>
-                      <span className="fw-600">{r.name}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div className="avatar">
+                        {(rm.name || '?').charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{rm.name}</div>
+                        {rm.id === currentUser?.id && (
+                          <span
+                            className="badge"
+                            style={{
+                              background: 'var(--success)',
+                              color: 'white',
+                              marginTop: '0.25rem',
+                            }}
+                          >
+                            YOU
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
-                  <td className="text-muted">{r.email}</td>
-                  <td className="text-muted">{r.phone || '—'}</td>
-                  <td>
-                    {r.id === currentUser?.id && (
-                      <span className="badge badge-purple">You</span>
-                    )}
-                  </td>
+                  <td>{rm.email}</td>
+                  <td>{rm.phone || '—'}</td>
                 </tr>
               ))}
             </tbody>

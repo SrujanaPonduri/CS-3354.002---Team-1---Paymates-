@@ -42,7 +42,7 @@ def build_magic_link_url(token: str) -> str:
     if not base:
         raise ValueError("FRONTEND_BASE_URL must be set to send magic links")
     q = urlencode({"token": token})
-    return f"{base}/magic-link?{q}"
+    return f"{base}/magic-link-sent?{q}"
 
 
 # Helper to retrieve the EMAIL_FROM environment variable (sender's email address).

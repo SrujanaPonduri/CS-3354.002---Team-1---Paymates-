@@ -1,5 +1,4 @@
 // src/components/InviteModal.jsx
-// Use Case: UC03 — FR-02: invite a new roommate by email.
 
 import React, { useState } from 'react';
 import client from '../api/client.js';
@@ -21,7 +20,6 @@ export default function InviteModal({ homeId, inviterId, onClose, onSuccess }) {
         invitee_email: email.trim(),
       });
       setToken(res.data.invite_token);
-      // Signal parent to refresh; keep modal open to show the token
       onSuccess?.();
     } catch (err) {
       if (err.response?.status === 409) {
@@ -45,27 +43,27 @@ export default function InviteModal({ homeId, inviterId, onClose, onSuccess }) {
 
         {token ? (
           <div>
-            <p style={{ color: '#86efac', marginBottom: '1rem', fontSize: 14 }}>
+            <p style={{ color: 'var(--success)', marginBottom: '1.25rem', fontSize: 14, fontWeight: 600 }}>
               ✅ Invite created! Share this token with your roommate:
             </p>
             <code style={{
-              display: 'block', padding: '.75rem', background: '#252540',
-              borderRadius: 8, wordBreak: 'break-all', fontSize: 12,
-              border: '1px solid #2d2d4a', color: '#a78bfa',
+              display: 'block', padding: '1rem', background: 'var(--surface-2)',
+              borderRadius: 'var(--r)', wordBreak: 'break-all', fontSize: 13,
+              border: '2px solid var(--border)', color: 'var(--accent)', fontWeight: 600,
             }}>
               {token}
             </code>
-            <p style={{ fontSize: 12, color: '#64748b', marginTop: '.5rem' }}>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: '.75rem' }}>
               They can use this token at <strong>POST /homes/{homeId}/accept_invite</strong>.
             </p>
             <div className="modal-actions">
-              <button className="btn btn-primary" onClick={onClose}>Done</button>
+              <button className="btn btn-primary" onClick={onClose}>DONE</button>
             </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label className="form-label">Roommate's email address</label>
+              <label className="form-label">ROOMMATE'S EMAIL ADDRESS</label>
               <input
                 className="form-input"
                 type="email"
@@ -77,9 +75,9 @@ export default function InviteModal({ homeId, inviterId, onClose, onSuccess }) {
               />
             </div>
             <div className="modal-actions">
-              <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn btn-primary" disabled={loading}>
-                {loading ? 'Sending…' : 'Send invite'}
+              <button type="button" className="btn btn-secondary" onClick={onClose}>CANCEL</button>
+              <button type="submit" className="btn btn-success" disabled={loading}>
+                {loading ? 'SENDING…' : 'SEND INVITE'}
               </button>
             </div>
           </form>
