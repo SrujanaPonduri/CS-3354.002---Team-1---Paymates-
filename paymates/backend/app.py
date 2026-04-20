@@ -24,6 +24,9 @@ from routes.history import history_bp   # UC-10 payment history
 from routes.audit import audit_bp       # UC-12 audit & reports
 from routes.budgets import budgets_bp   # UC-11 budget management
 
+from dotenv import load_dotenv
+load_dotenv()
+
 app = Flask(__name__)
 
 # Allow requests from the Vite dev server
