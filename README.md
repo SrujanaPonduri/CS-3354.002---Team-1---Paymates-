@@ -43,77 +43,25 @@ This application targets all households with multiple financially independent re
 
 ---
 
-### 1. Clone the repository
+### Quick Start (Shell Scripts)
 
+Two convenience scripts are provided at the repo root to set up and start each tier in one command. Run each in a **separate terminal**:
+
+**Terminal 1 — Backend:**
 ```bash
-git clone <repo-url>
-cd CS-3354.002---Team-1---Paymates-
+bash setup_backend.sh
 ```
 
----
-
-### 2. Start the Backend (Flask)
-
+**Terminal 2 — Frontend:**
 ```bash
-# Create and activate a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-
-# Install dependencies
-pip install -r paymates/backend/requirements.txt
-
-# Run the Flask dev server (port 5001)
-cd paymates/backend
-python app.py
+bash setup_frontend.sh
 ```
 
-The API will be available at **http://localhost:5001**.  
-You can verify it is running by visiting **http://localhost:5001/api/health** — it should return `{"status": "ok"}`.
+| Terminal | Script | URL |
+|----------|--------|-----|
+| 1 – Backend | `setup_backend.sh` | http://localhost:5001 |
+| 2 – Frontend | `setup_frontend.sh` | http://localhost:3000 |
 
-#### Magic-link email (backend environment)
-
-Set these in your shell before `python app.py` (or use your own process manager / `.env` loader):
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `FRONTEND_BASE_URL` | Yes | Browser origin for links in emails, e.g. `http://localhost:3000` (no trailing slash). |
-| `EMAIL_FROM` | For SMTP | `From:` address when using SMTP. |
-| `SMTP_HOST` | For SMTP | If unset, magic links are **only printed to the server console** (fine for local dev). |
-| `SMTP_PORT` | No | Default `587`. |
-| `SMTP_USER` / `SMTP_PASSWORD` | Often | SMTP credentials. |
-| `SMTP_USE_TLS` | No | Default `true` (STARTTLS). |
-| `SMTP_USE_SSL` | No | Default `false`; set `true` for implicit TLS (e.g. port 465). |
-| `MAGIC_LINK_RETURN_TOKEN` | No | If `true`, signup/login responses also include a `token` field so you can use “Verify and continue” on the `/magic-link-sent` page without email. |
-
-Example (console-only links, typical local run):
-
-```bash
-export FRONTEND_BASE_URL=http://localhost:5173
-cd paymates/backend
-python app.py
-```
-
----
-
-### 3. Start the Frontend (Vite + React)
-
-Open a **new terminal** in the project root:
-
-```bash
-cd paymates/frontend
-npm install        # only needed the first time
-npm run dev
-```
-
-The app will be available at **http://localhost:5173**.
-
----
-
-### Quick-start summary
-
-| Terminal | Command | URL |
-|----------|---------|-----|
-| 1 – Backend | `python paymates/backend/app.py` | http://localhost:5001 |
-| 2 – Frontend | `cd paymates/frontend` + `npm run dev` | http://localhost:5173 |
+Each script automatically creates the Python virtual environment (if needed), installs dependencies, and starts the server.
 
 > **Note:** Both servers must be running at the same time for the app to work correctly.

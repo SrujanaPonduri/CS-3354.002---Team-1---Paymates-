@@ -10,5 +10,5 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # Start the frontend
-echo "Starting frontend on http://localhost:5173"
+echo "Starting frontend on http://localhost:3000"
 npm run dev
