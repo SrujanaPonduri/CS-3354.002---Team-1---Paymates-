@@ -1,6 +1,6 @@
 # tests/test_auth.py
 # Automated test suite for the Paymates auth REST API.
-#
+# Aagam Shah
 # Covers UC01 (Sign Up) per the course test matrix, plus login, magic-link
 # verification, account setup, and the bearer-token middleware that guards
 # non-public /api/* endpoints.
