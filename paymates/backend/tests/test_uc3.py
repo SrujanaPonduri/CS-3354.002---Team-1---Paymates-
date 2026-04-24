@@ -27,6 +27,9 @@
 
 import pytest
 
+from mock_db import DB
+from services.email_service import EmailSendError
+
 
 class TestUC03AddRoommate:
 
@@ -153,3 +156,22 @@ class TestUC03AddRoommate:
             },
         )
         assert rv.status_code == 400
+
+    def test_invite_email_failure_returns_503_and_removes_stored_token(
+        self, authed_client, monkeypatch
+    ):
+        """If home invite email cannot be sent, the invite row must be rolled back."""
+
+        def _boom(*a, **k):
+            raise EmailSendError("smtp unavailable")
+
+        monkeypatch.setattr("routes.roommates.send_home_invite", _boom)
+        assert authed_client.post(
+            "/api/homes/home-demo/invite",
+            json={
+                "inviter_id": "u1",
+                "invitee_email": "roll.back@example.com",
+            },
+        ).status_code == 503
+        for inv in DB["invites"].values():
+            assert inv["email"] != "roll.back@example.com"
