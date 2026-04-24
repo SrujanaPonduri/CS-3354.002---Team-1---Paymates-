@@ -3,7 +3,7 @@
 # Sends magic-link emails (SMTP) or logs them to the console (local dev).
 #
 # Environment variables:
-#   FRONTEND_BASE_URL   (required) — e.g. http://localhost:5173 — base for magic URLs
+#   FRONTEND_BASE_URL   (required) — e.g. http://localhost:3000 — base for magic URLs
 #   EMAIL_FROM          (required for SMTP) — From: address
 #
 # When SMTP_HOST is set, mail is sent via SMTP; otherwise "console" mode logs the link.
