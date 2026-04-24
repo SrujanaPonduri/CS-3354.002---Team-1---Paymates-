@@ -177,7 +177,7 @@ export default function CreateEditBillPage() {
             <thead>
               <tr>
                 <th>Item name</th>
-                <th style={{ width: 80 }}>Qty</th>
+                <th style={{ width: 120 }}>Qty</th>
                 <th style={{ width: 120 }}>Unit price</th>
                 <th style={{ width: 100, textAlign: 'right' }}>Subtotal</th>
                 <th style={{ width: 60 }}></th>

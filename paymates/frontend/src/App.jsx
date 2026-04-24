@@ -1,8 +1,6 @@
 // src/App.jsx
 // Defines all client-side routes using React Router v6.
 // HomeProvider is provided by main.jsx — App only handles routing.
-// All routes under /homes/:homeId/* are protected by RequireAuth, which
-// redirects unauthenticated users to /login.
 
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
@@ -20,6 +18,8 @@ import ExpensesPage from './pages/ExpensesPage.jsx';
 import CreateEditExpensePage from './pages/CreateEditExpensePage.jsx';
 import InventoryPage from './pages/InventoryPage.jsx';
 import DuesPage from './pages/DuesPage.jsx';
+import BudgetsPage from './pages/BudgetsPage.jsx';   // UC-12
+import AuditPage from './pages/AuditPage.jsx';         // UC-13
 
 export default function App() {
   return (
@@ -36,7 +36,7 @@ export default function App() {
         {/* UC02 — home management */}
         <Route path="/homes" element={<HomesPage />} />
         <Route path="/homes/new" element={<CreateHomePage />} />
-        {/* UC03–UC08 — home-scoped pages */}
+        {/* UC03–UC13 — home-scoped pages */}
         <Route path="/homes/:homeId/roommates" element={<RoommatesPage />} />
         <Route path="/homes/:homeId/bills" element={<BillsPage />} />
         <Route path="/homes/:homeId/bills/new" element={<CreateEditBillPage />} />
@@ -46,6 +46,8 @@ export default function App() {
         <Route path="/homes/:homeId/expenses/:expId/edit" element={<CreateEditExpensePage />} />
         <Route path="/homes/:homeId/inventory" element={<InventoryPage />} />
         <Route path="/homes/:homeId/dues" element={<DuesPage />} />
+        <Route path="/homes/:homeId/budgets" element={<BudgetsPage />} />   {/* UC-12 */}
+        <Route path="/homes/:homeId/audit" element={<AuditPage />} />       {/* UC-13 */}
       </Route>
     </Routes>
   );
