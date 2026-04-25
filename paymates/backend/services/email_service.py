@@ -36,13 +36,25 @@ class EmailSendError(Exception):
     """Raised when SMTP delivery fails — indicates SMTP server rejected the message."""
 
 
-def build_magic_link_url(token: str) -> str:
-    """Return the full magic-link URL embedded in emails."""
+def _frontend_base() -> str:
     base = (os.environ.get("FRONTEND_BASE_URL") or "").strip().rstrip("/")
     if not base:
-        raise ValueError("FRONTEND_BASE_URL must be set to send magic links")
+        raise ValueError("FRONTEND_BASE_URL must be set to send email links")
+    return base
+
+
+def build_magic_link_url(token: str) -> str:
+    """Return the full magic-link URL embedded in emails."""
+    base = _frontend_base()
     q = urlencode({"token": token})
     return f"{base}/magic-link-sent?{q}"
+
+
+def build_home_invite_url(home_id: str, invite_token: str) -> str:
+    """Return the app URL for accepting a home invite (query matches accept_invite)."""
+    base = _frontend_base()
+    q = urlencode({"home_id": home_id, "invite_token": invite_token})
+    return f"{base}/accept-home-invite?{q}"
 
 
 # Helper to retrieve the EMAIL_FROM environment variable (sender's email address).
@@ -56,19 +68,21 @@ def _email_from() -> str:
 # Console Mode (Local Development)
 # ---------------------------------------------------------------------------
 
-# Used when SMTP_HOST is not configured. Prints the magic link to console
+# Used when SMTP_HOST is not configured. Prints the link to console
 # and logs it for debugging. Useful for local development and testing without
 # setting up a real SMTP server.
-def _send_console(to_email: str, subject: str, plain: str, magic_url: str) -> None:
+def _send_console(
+    to_email: str, subject: str, plain: str, link_url: str, *, banner: str
+) -> None:
     block = (
         f"\n{'=' * 60}\n"
-        f"[Paymates magic link — console mode]\n"
+        f"{banner}\n"
         f"To: {to_email}\n"
-        f"Subject: {subject}\n\n{plain}\n\nLink:\n{magic_url}\n"
+        f"Subject: {subject}\n\n{plain}\n\nLink:\n{link_url}\n"
         f"{'=' * 60}\n"
     )
     print(block, flush=True)
-    logger.info("Magic link (console) for %s — %s", to_email, magic_url)
+    logger.info("%s (console) for %s — %s", banner, to_email, link_url)
 
 
 # ---------------------------------------------------------------------------
@@ -159,4 +173,44 @@ def send_magic_link(to_email: str, token: str, *, signup: bool) -> None:
     if smtp_host:
         _send_smtp(to_email, subject, plain, html)
     else:
-        _send_console(to_email, subject, plain, magic_url)
+        _send_console(
+            to_email, subject, plain, magic_url, banner="[Paymates magic link — console mode]"
+        )
+
+
+def send_home_invite(
+    to_email: str,
+    home_id: str,
+    invite_token: str,
+    *,
+    home_name: str,
+    inviter_label: str,
+) -> None:
+    """
+    Email a home invite link. invite_token is already stored in DB["invites"].
+
+    Raises ValueError for configuration problems, EmailSendError on SMTP failure.
+    """
+    invite_url = build_home_invite_url(home_id, invite_token)
+    subject = f"You are invited to join {home_name} on Paymates"
+    plain = (
+        f"{inviter_label} invited you to join the home “{home_name}” on Paymates.\n\n"
+        f"Open this link to sign in and join (expires in 24 hours):\n{invite_url}\n"
+    )
+    html = (
+        f"<p>{inviter_label} invited you to join <strong>{home_name}</strong> on Paymates.</p>"
+        f'<p><a href="{invite_url}">Click here to join</a></p>'
+        f"<p>Or copy this URL:</p><p>{invite_url}</p>"
+        f"<p>This link expires in 24 hours.</p>"
+    )
+    smtp_host = (os.environ.get("SMTP_HOST") or "").strip()
+    if smtp_host:
+        _send_smtp(to_email, subject, plain, html)
+    else:
+        _send_console(
+            to_email,
+            subject,
+            plain,
+            invite_url,
+            banner="[Paymates home invite — console mode]",
+        )

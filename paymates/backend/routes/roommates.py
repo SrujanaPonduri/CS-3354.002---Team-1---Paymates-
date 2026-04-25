@@ -1,6 +1,6 @@
 # routes/roommates.py
 # Responsible for: UC03 — managing roommate membership within a home.
-# Joseph Botros
+# Joseph Botros and Aagam Shah
 # Covers inviting a new roommate, accepting an invite, listing current
 # roommates, and leaving a home.
 
@@ -8,8 +8,9 @@ import time # for invite expiration timestamps
 import secrets # for secure invite token generation
 
 # Flask imports for defining routes and handling JSON requests/responses
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 from mock_db import DB, new_id
+from services.email_service import EmailSendError, send_home_invite
 
 # Blueprint for roommate-related routes, to be registered in the main app
 roommates_bp = Blueprint("roommates", __name__)
@@ -76,7 +77,8 @@ def invite_roommate(home_id):
     Returns 404 if home not found.
     Returns 403 if inviter_id is not a member of the home.
     Returns 409 if invitee_email already belongs to a current member.
-    Returns 200 { invite_token }.
+    Returns 200 { invite_token } on success (invite email is sent).
+    Returns 500 if email URL configuration is invalid; 503 if email delivery fails.
     """
     home = _get_home(home_id)
     if not home:
@@ -113,8 +115,35 @@ def invite_roommate(home_id):
         "expires_at": time.time() + 86400,  # 86 400 s = 24 hours
     }
 
-    # Return the token directly so the frontend can display it without needing
-    # a real email delivery system.  In production this would be sent by email.
+    inviter = _get_user(inviter_id)
+    home_name = (home.get("name") or "").strip() or "your home"
+    if inviter:
+        inviter_label = (
+            (inviter.get("name") or "").strip()
+            or (inviter.get("email") or "").strip()
+            or "A roommate"
+        )
+    else:
+        inviter_label = "A roommate"
+
+    try:
+        send_home_invite(
+            invitee_email,
+            home_id,
+            invite_token,
+            home_name=home_name,
+            inviter_label=inviter_label,
+        )
+    except ValueError as exc:
+        DB["invites"].pop(invite_token, None)
+        return jsonify({"error": str(exc)}), 500
+    except EmailSendError:
+        DB["invites"].pop(invite_token, None)
+        return (
+            jsonify({"error": "Unable to send invite email. Please try again later."}),
+            503,
+        )
+
     return jsonify({"invite_token": invite_token}), 200
 
 
@@ -128,6 +157,7 @@ def accept_invite(home_id):
     """UC03-FR03: Allow a user to join a home by redeeming an invite token.
 
     Returns 401 if the invite_token is missing or expired.
+    Returns 403 if the invite was sent to a different email account.
     Returns 404 if the home or user does not exist.
     Returns 200 { message } on success; token is deleted after use.
     """
@@ -139,8 +169,8 @@ def accept_invite(home_id):
     invite_token = (data.get("invite_token") or "").strip()
     user_id = (data.get("user_id") or "").strip()
 
-    if not invite_token or not user_id:
-        return jsonify({"error": "invite_token and user_id are required"}), 400
+    if not invite_token:
+        return jsonify({"error": "invite_token is required"}), 400
 
     invite = DB["invites"].get(invite_token)
     if not invite:
@@ -151,9 +181,18 @@ def accept_invite(home_id):
     if invite["home_id"] != home_id:
         return jsonify({"error": "Invite token is for a different home"}), 401
 
-    user = _get_user(user_id)
+    auth_email = (getattr(g, "auth_email", "") or "").strip().lower()
+    if not auth_email:
+        return jsonify({"error": "Authentication required"}), 401
+    if invite["email"].lower() != auth_email:
+        return jsonify({"error": "This invite was sent to a different email address"}), 403
+
+    user = _find_user_by_email(auth_email)
     if not user:
         return jsonify({"error": "User not found"}), 404
+    if user_id and user_id != user["id"]:
+        return jsonify({"error": "user_id does not match authenticated user"}), 403
+    user_id = user["id"]
 
     # Idempotent join — if the user is somehow already in the home (e.g., race
     # condition), silently skip the append rather than raising an error.
