@@ -6,8 +6,8 @@
 # - Sets the env vars the auth blueprint looks at (MAGIC_LINK_RETURN_TOKEN so
 #   tokens come back in JSON, FRONTEND_BASE_URL so the email-service helper
 #   can build a URL) BEFORE importing the Flask app.
-# - Stubs out `services.email_service.send_magic_link` to avoid real SMTP and
-#   to let individual tests force failure paths.
+# - Stubs out `services.email_service.send_magic_link` and
+#   `routes.roommates.send_home_invite` to avoid real SMTP and console spam.
 # - Resets the in-memory DB between tests via an autouse fixture that calls
 #   seed() after clearing all collections.
 
@@ -42,6 +42,7 @@ def flask_app():
 def client(flask_app, monkeypatch):
     """Flask test client with SMTP stubbed to a no-op by default."""
     monkeypatch.setattr("routes.auth.send_magic_link", lambda *a, **k: None)
+    monkeypatch.setattr("routes.roommates.send_home_invite", lambda *a, **k: None)
     with flask_app.test_client() as c:
         yield c
 
@@ -97,6 +98,7 @@ class _AuthedClient:
 def authed_client(flask_app, monkeypatch):
     """Authenticated test client — auto-sends Bearer session token."""
     monkeypatch.setattr("routes.auth.send_magic_link", lambda *a, **k: None)
+    monkeypatch.setattr("routes.roommates.send_home_invite", lambda *a, **k: None)
     with flask_app.test_client() as raw:
         r1 = raw.post("/api/auth/login", json={"email": "aagam@example.com"})
         assert r1.status_code == 200, f"Login failed: {r1.get_json()}"

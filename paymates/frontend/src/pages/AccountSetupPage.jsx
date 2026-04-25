@@ -6,18 +6,32 @@ import client from '../api/client.js';
 import { useHome } from '../context/HomeContext.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
 
-export default function AccountSetupPage() {
-  const { state }           = useLocation();
-  const token               = state?.token || '';
-  const email               = state?.email || '';
-  const { setCurrentUser }  = useHome();
-  const navigate            = useNavigate();
+const PENDING_INVITE_KEY = 'paymates_pending_home_invite';
 
-  const [name, setName]       = useState('');
-  const [phone, setPhone]     = useState('');
+function readPendingInvite() {
+  try {
+    const raw = localStorage.getItem(PENDING_INVITE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.homeId || !parsed?.inviteToken) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export default function AccountSetupPage() {
+  const { state } = useLocation();
+  const token = state?.token || '';
+  const email = state?.email || '';
+  const { setCurrentUser } = useHome();
+  const navigate = useNavigate();
+
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,8 +42,8 @@ export default function AccountSetupPage() {
     try {
       const res = await client.post('/auth/setup', {
         token,
-        name:    name.trim(),
-        phone:   phone.trim(),
+        name: name.trim(),
+        phone: phone.trim(),
         address: address.trim(),
       });
 
@@ -37,9 +51,17 @@ export default function AccountSetupPage() {
       // Save the session token so client.js attaches it to every API request.
       if (sessionToken) localStorage.setItem('paymates_token', sessionToken);
       setCurrentUser(user);
+      const pendingInvite = readPendingInvite();
+      if (pendingInvite) {
+        navigate(
+          `/accept-home-invite?home_id=${encodeURIComponent(pendingInvite.homeId)}&invite_token=${encodeURIComponent(pendingInvite.inviteToken)}`
+        );
+        return;
+      }
       navigate('/homes');
     } catch (err) {
       if (err.response?.status === 401) {
+        // Token expired or was already used
         setError('Your link expired. Please start over.');
       } else {
         setError(err.response?.data?.error || 'Setup failed. Please try again.');
@@ -49,23 +71,23 @@ export default function AccountSetupPage() {
     }
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ fontSize: '48px', marginBottom: '1rem' }}>Profile</div>
-        </div>
+        <div className="auth-logo">👤</div>
+        <h1 className="auth-title">Set up your profile</h1>
 
-        <h1 className="auth-title" style={{ textAlign: 'center' }}>Set up your profile</h1>
-        <p className="auth-subtitle" style={{ textAlign: 'center' }}>
-          Complete your account for <strong style={{ color: '#7C5FFF' }}>{email}</strong>
+        {/* Show the email the token was issued for so the user can confirm */}
+        <p className="auth-subtitle">
+          Finishing up for <strong style={{ color: '#a78bfa' }}>{email}</strong>
         </p>
 
         <ErrorBanner message={error} onDismiss={() => setError('')} />
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">FULL NAME</label>
+            <label className="form-label">Full name *</label>
             <input
               className="form-input"
               type="text"
@@ -77,19 +99,21 @@ export default function AccountSetupPage() {
             />
           </div>
 
+          {/* Optional — stored in user record for roommate display */}
           <div className="form-group">
-            <label className="form-label">PHONE</label>
+            <label className="form-label">Phone number</label>
             <input
               className="form-input"
               type="tel"
-              placeholder="555-1234"
+              placeholder="555-0000"
               value={phone}
               onChange={e => setPhone(e.target.value)}
             />
           </div>
 
+          {/* Optional — defaults to the home's address if left blank */}
           <div className="form-group">
-            <label className="form-label">ADDRESS</label>
+            <label className="form-label">Address</label>
             <input
               className="form-input"
               type="text"
@@ -99,8 +123,8 @@ export default function AccountSetupPage() {
             />
           </div>
 
-          <button className="btn btn-primary btn-full" type="submit" disabled={loading}>
-            {loading ? 'SETTING UP...' : 'COMPLETE SETUP →'}
+          <button className="btn btn-primary btn-full" type="submit" disabled={loading} style={{ marginTop: 8 }}>
+            {loading ? 'Creating account…' : 'Create account →'}
           </button>
         </form>
       </div>

@@ -9,6 +9,7 @@ import SignUpPage from './pages/SignUpPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import MagicLinkSentPage from './pages/MagicLinkSentPage.jsx';
 import AccountSetupPage from './pages/AccountSetupPage.jsx';
+import AcceptHomeInvitePage from './pages/AcceptHomeInvitePage.jsx';
 import HomesPage from './pages/HomesPage.jsx';
 import CreateHomePage from './pages/CreateHomePage.jsx';
 import RoommatesPage from './pages/RoommatesPage.jsx';
@@ -30,6 +31,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/magic-link-sent" element={<MagicLinkSentPage />} />
       <Route path="/account-setup" element={<AccountSetupPage />} />
+      <Route path="/accept-home-invite" element={<AcceptHomeInvitePage />} />
 
       {/* ── Protected routes (RequireAuth redirects to /login if no user) ── */}
       <Route element={<RequireAuth />}>
