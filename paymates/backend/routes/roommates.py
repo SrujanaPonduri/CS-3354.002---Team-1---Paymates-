@@ -68,6 +68,7 @@ def list_roommates(home_id):
 # ---------------------------------------------------------------------------
 # POST /api/homes/<home_id>/invite
 # Body: { inviter_id, invitee_email }
+# Aagam Shah
 @roommates_bp.route("/<home_id>/invite", methods=["POST"])
 def invite_roommate(home_id):
     """UC03-FR02: Generate an invite token for a prospective roommate.
@@ -152,6 +153,7 @@ def invite_roommate(home_id):
 # ---------------------------------------------------------------------------
 # POST /api/homes/<home_id>/accept_invite
 # Body: { invite_token, user_id }
+# Aagam Shah
 @roommates_bp.route("/<home_id>/accept_invite", methods=["POST"])
 def accept_invite(home_id):
     """UC03-FR03: Allow a user to join a home by redeeming an invite token.
