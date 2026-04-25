@@ -7,7 +7,7 @@ import { useHome } from '../context/HomeContext.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
 
 export default function CreateHomePage() {
-  const { currentUser } = useHome();
+  const { currentUser, refreshHomes } = useHome();
   const navigate        = useNavigate();
 
   const [name, setName]       = useState('');
@@ -36,6 +36,8 @@ export default function CreateHomePage() {
         address:    address.trim(),
       });
       const newHome = res.data.home;
+      // Refresh homes in context so the new home appears immediately
+      await refreshHomes();
       navigate(`/homes/${newHome.id}/inventory`);
     } catch (err) {
       if (err.response?.status === 400) {
