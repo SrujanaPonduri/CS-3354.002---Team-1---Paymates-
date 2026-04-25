@@ -39,7 +39,25 @@ Optional:
 
 - `MAGIC_LINK_RETURN_TOKEN=true` for easier local testing
 - SMTP variables (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_USE_TLS`, `SMTP_USE_SSL`, `EMAIL_FROM`) for real email delivery
-- If `SMTP_HOST` is empty, emails are logged in console mode
+- You must set up the SMTP credentials with your SMTP provider.
+- If you are using a Gmail account for SMTP, follow these steps:
+  1. Enable 2-Step Verification on your Google account.
+  2. Generate an App Password in Google Account settings:
+     - Go to [Google Account Security](https://myaccount.google.com/security)
+     - Open **App passwords**
+     - Create one for **Mail**
+  3. Put this in `paymates/backend/.env`:
+     ```env
+     SMTP_HOST=smtp.gmail.com
+     SMTP_PORT=587
+     SMTP_USER=<your_email@gmail.com>
+     SMTP_PASSWORD=<your_16_char_app_password>
+     SMTP_USE_TLS=true
+     SMTP_USE_SSL=false
+     EMAIL_FROM=<your_email@gmail.com>
+     ```
+  4. Restart the backend after updating `.env`.
+  5. Send a signup/login/invite email and confirm it arrives in inbox/spam.
 
 ## 4) Run backend server
 
