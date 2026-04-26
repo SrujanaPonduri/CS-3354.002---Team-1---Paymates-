@@ -25,6 +25,8 @@
 # Run from paymates/backend/:
 #   pytest tests/test_uc3.py -v
 
+import time
+
 import pytest
 
 from mock_db import DB
@@ -175,3 +177,22 @@ class TestUC03AddRoommate:
         ).status_code == 503
         for inv in DB["invites"].values():
             assert inv["email"] != "roll.back@example.com"
+
+# Aagam Shah
+# Extra test case to test the reject case for the accept invite endpoint
+    def test_accept_invite_rejects_authenticated_user_with_different_email(self, authed_client):
+        """Invite tokens must only be redeemable by the invited email account."""
+        token = "token-for-someone-else"
+        DB["invites"][token] = {
+            "email": "srujana@example.com",
+            "home_id": "home-demo",
+            "invited_by": "u1",
+            "expires_at": time.time() + 3600,
+        }
+
+        rv = authed_client.post(
+            "/api/homes/home-demo/accept_invite",
+            json={"invite_token": token, "user_id": "u1"},
+        )
+        assert rv.status_code == 403
+        assert token in DB["invites"], "Invite should remain usable by the correct account"

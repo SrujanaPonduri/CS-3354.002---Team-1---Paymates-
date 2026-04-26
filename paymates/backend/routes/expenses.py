@@ -1,6 +1,7 @@
 # routes/expenses.py
 # Responsible for: UC05 — creating and managing shared expenses (one-time or
 # recurring), generating per-user dues, and handling partial updates.
+#  Joseph Botros
 
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
