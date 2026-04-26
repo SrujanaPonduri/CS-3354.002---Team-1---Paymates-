@@ -9,6 +9,12 @@ if [ ! -d "node_modules" ]; then
   npm install
 fi
 
+# Install react-phone-number-input if not already installed
+if [ ! -d "node_modules/react-phone-number-input" ]; then
+  echo "Installing react-phone-number-input..."
+  npm install react-phone-number-input
+fi
+
 # Start the frontend
 echo "Starting frontend on http://localhost:3000"
 npm run dev
