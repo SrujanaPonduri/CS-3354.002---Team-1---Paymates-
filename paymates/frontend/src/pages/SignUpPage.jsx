@@ -12,7 +12,7 @@ function LogoIcon() {
       <g transform="translate(4, 4)">
         <text 
           x="36" 
-          y="48" 
+          y="52" 
           textAnchor="middle" 
           fontSize="52" 
           fontWeight="900" 
@@ -26,7 +26,7 @@ function LogoIcon() {
       {/* Outline layer - thick black P */}
       <text 
         x="36" 
-        y="48" 
+        y="52" 
         textAnchor="middle" 
         fontSize="52" 
         fontWeight="900" 
@@ -39,7 +39,7 @@ function LogoIcon() {
       {/* Inner green P - slightly smaller */}
       <text 
         x="36" 
-        y="48" 
+        y="52" 
         textAnchor="middle" 
         fontSize="52" 
         fontWeight="900" 
