@@ -58,7 +58,11 @@ def _parse_period(args) -> tuple[str, str]:
 
     if period == "this_month":
         start = first_this.isoformat()
-        end   = today.isoformat()
+        # Use last day of this month so bills/expenses dated today or later
+        # in the same calendar month are included (not cut off at today).
+        import calendar
+        last_day = calendar.monthrange(today.year, today.month)[1]
+        end   = today.replace(day=last_day).isoformat()
     elif period == "last_month":
         last_month_end   = first_this - timedelta(days=1)
         last_month_start = last_month_end.replace(day=1)
@@ -102,7 +106,7 @@ def _category_totals(bills: list, expenses: list) -> dict[str, float]:
     for b in bills:
         totals[b.get("category") or "Uncategorised"] += b.get("total", 0)
     for e in expenses:
-        totals[e.get("expense_type") or "Expense"] += e.get("amount", 0)
+        totals[e.get("title") or "Expense"] += e.get("amount", 0)
     return dict(totals)
 
 
@@ -247,7 +251,7 @@ def budget_vs_actual(home_id):
     for b in bills:
         actual[b.get("category") or "Uncategorised"] += b.get("total", 0)
     for e in expenses:
-        actual[e.get("expense_type") or "Expense"] += e.get("amount", 0)
+        actual[e.get("title") or "Expense"] += e.get("amount", 0)
 
     # Budgets for this home (filter by month/year if possible)
     budgets_for_home: dict[str, float] = {}
@@ -476,14 +480,15 @@ def create_budget(home_id):
 
     bgt_id = new_id()
     budget = {
-        "id":            bgt_id,
-        "home_id":       home_id,
-        "category":      category,
-        "budget_amount": budget_amount,
-        "month":         month,
-        "year":          year,
-        "visibility":    visibility,
-        "created_by":    creator_id,
+        "id":              bgt_id,
+        "home_id":         home_id,
+        "category":        category,
+        "budget_amount":   budget_amount,
+        "current_balance": 0.0,
+        "month":           month,
+        "year":            year,
+        "visibility":      visibility,
+        "created_by":      creator_id,
     }
     DB["budgets"][bgt_id] = budget
     return jsonify({"budget": budget}), 201
@@ -498,3 +503,23 @@ def list_budgets(home_id):
 
     home_budgets = [b for b in DB["budgets"].values() if b["home_id"] == home_id]
     return jsonify({"budgets": home_budgets}), 200
+
+
+# PATCH /api/budgets/<budget_id>/add-balance
+@audit_bp.route("/budgets/<budget_id>/add-balance", methods=["PATCH"])
+def add_budget_balance(budget_id):
+    """FR-06: Add (or subtract) an amount from the current budget spending."""
+    budget = DB["budgets"].get(budget_id)
+    if not budget:
+        return jsonify({"error": "Budget not found"}), 404
+
+    data   = request.get_json(silent=True) or {}
+    amount = data.get("amount")
+
+    try:
+        amount_val = float(amount)
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid amount"}), 400
+
+    budget["current_balance"] = budget.get("current_balance", 0.0) + amount_val
+    return jsonify({"budget": budget}), 200
