@@ -1,3 +1,15 @@
+# routes/budgets.py
+# Responsible for: UC-12 — Create/Manage Budget.
+# Kavya Seenuvasan
+#
+# FR-04: Allow users to add a Budget to their Home (amount allocated to expenses).
+# FR-05: Allow users to create Budgets for various categories (e.g. groceries, utilities).
+# FR-06: Allow users to add a balance to a Budget.
+#
+# Endpoints:
+#   POST  /api/budgets                          — FR-04/05: Create a budget (standalone)
+#   PATCH /api/budgets/<budget_id>/add-balance  — FR-06:    Add spending to a budget
+
 from flask import Blueprint, jsonify, request
 from mock_db import DB, new_id
 
@@ -5,7 +17,7 @@ budgets_bp = Blueprint("budgets", __name__)
 
 @budgets_bp.route("/budgets", methods=["POST"])
 def create_budget():
-    """UC11-FR04/05: Create a new budget category and limit."""
+    """FR-04/05: Create a new budget category and limit."""
     data = request.get_json(silent=True) or {}
     home_id = data.get("home_id")
     category = data.get("category", "").strip()
@@ -21,7 +33,7 @@ def create_budget():
     except ValueError:
         return jsonify({"error": "Limit must be a number"}), 400
 
-    # Check for duplicates in the specific home (Test Case 5 logic)
+    # FR-05: Prevent duplicate categories within the same Home (TC8 logic).
     existing = [b for b in DB["budgets"].values() if b["home_id"] == home_id and b["category"] == category]
     if existing:
         return jsonify({"error": "Budget category already exists for this home"}), 409
@@ -41,7 +53,7 @@ def create_budget():
 
 @budgets_bp.route("/budgets/<budget_id>/add-balance", methods=["PATCH"])
 def add_budget_balance(budget_id):
-    """UC11-FR06: Add an amount to the current budget spending."""
+    """FR-06: Add an amount to the current budget spending."""
     budget = DB["budgets"].get(budget_id)
     if not budget:
         return jsonify({"error": "Budget not found"}), 404
