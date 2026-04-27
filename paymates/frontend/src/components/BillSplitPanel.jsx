@@ -2,10 +2,56 @@
 
 import React from 'react';
 
+function EvenlyIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ verticalAlign: 'middle', marginRight: '5px' }}>
+      <line x1="7" y1="1" x2="7" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="1" y1="4" x2="6" y2="4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="8" y1="4" x2="13" y2="4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="1" y1="7" x2="6" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="8" y1="7" x2="13" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="1" y1="10" x2="6" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="8" y1="10" x2="13" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function ByItemIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ verticalAlign: 'middle', marginRight: '5px' }}>
+      <rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+      <rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+      <rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+      <rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+    </svg>
+  );
+}
+
+function FixedAmountIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ verticalAlign: 'middle', marginRight: '5px' }}>
+      <rect x="2" y="3" width="10" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
+      <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
+      <line x1="7" y1="3" x2="7" y2="5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+      <line x1="7" y1="9" x2="7" y2="11" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function WarningIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ verticalAlign: 'middle', marginRight: '4px' }}>
+      <path d="M7 1L13 13H1L7 1Z" stroke="var(--error)" strokeWidth="1.3" strokeLinejoin="round"/>
+      <line x1="7" y1="5.5" x2="7" y2="8.5" stroke="var(--error)" strokeWidth="1.3" strokeLinecap="round"/>
+      <circle cx="7" cy="10.5" r="0.6" fill="var(--error)"/>
+    </svg>
+  );
+}
+
 const SPLIT_TYPES = [
-  { value: 'evenly',       label: '⚖️ Split evenly' },
-  { value: 'by_item',      label: '📦 By item' },
-  { value: 'fixed_amount', label: '🔒 Fixed amount' },
+  { value: 'evenly',       label: 'Split evenly',       icon: <EvenlyIcon /> },
+  { value: 'by_item',      label: 'By item',             icon: <ByItemIcon /> },
+  { value: 'fixed_amount', label: 'Fixed amount',        icon: <FixedAmountIcon /> },
 ];
 
 export default function BillSplitPanel({
@@ -40,7 +86,7 @@ export default function BillSplitPanel({
               className={`split-radio${splitType === t.value ? ' active' : ''}`}
               onClick={() => onSplitTypeChange(t.value)}
             >
-              {t.label}
+              {t.icon} {t.label}
             </button>
           ))}
         </div>
@@ -208,7 +254,7 @@ export default function BillSplitPanel({
             </div>
             {fixedDiff > 0.01 && (
               <p style={{ color: 'var(--error)', marginTop: 8, fontWeight: 600 }}>
-                ⚠ Amounts must sum to ${total.toFixed(2)} (off by ${fixedDiff.toFixed(2)})
+                <WarningIcon /> Amounts must sum to ${total.toFixed(2)} (off by ${fixedDiff.toFixed(2)})
               </p>
             )}
           </div>

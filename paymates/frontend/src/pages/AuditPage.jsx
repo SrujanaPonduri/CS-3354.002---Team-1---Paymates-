@@ -11,6 +11,61 @@ import client from '../api/client.js';
 import { useHome } from '../context/HomeContext.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
 
+function TrendIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+      <polyline points="2,14 6,10 9,12 13,6 16,4" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <polyline points="13,6 16,4 13,2" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function PieChartIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+      <circle cx="9" cy="9" r="7" stroke="var(--primary)" strokeWidth="1.8"/>
+      <path d="M9 2V9H16" stroke="var(--primary)" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function BudgetIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+      <rect x="1" y="3" width="16" height="13" rx="2" stroke="var(--primary)" strokeWidth="1.8"/>
+      <line x1="1" y1="8" x2="17" y2="8" stroke="var(--primary)" strokeWidth="1.5"/>
+      <circle cx="9" cy="11.5" r="1.5" fill="var(--primary)"/>
+    </svg>
+  );
+}
+
+function HistoryIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+      <circle cx="9" cy="9" r="7" stroke="var(--primary)" strokeWidth="1.8"/>
+      <polyline points="9,4 9,9 13,11" stroke="var(--primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function ExportIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ verticalAlign: 'middle', marginRight: '4px' }}>
+      <path d="M7 2V10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <polyline points="4,7 7,10 10,7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <line x1="3" y1="13" x2="11" y2="13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function DotIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" style={{ verticalAlign: 'middle', marginRight: '4px', flexShrink: 0 }}>
+      <circle cx="5" cy="5" r="4" fill="var(--accent)"/>
+    </svg>
+  );
+}
+
 const PERIOD_OPTIONS = [
   { value: 'this_month',   label: 'This Month' },
   { value: 'last_month',   label: 'Last Month' },
@@ -56,7 +111,7 @@ function TrendChart({ trends }) {
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '11px', color: 'var(--text-dim)' }}>
         <span>{bars[0]?.date}</span>
-        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>● today</span>
+        <span style={{ color: 'var(--accent)', fontWeight: 600 }}><DotIcon /> today</span>
         <span>{bars[bars.length - 1]?.date}</span>
       </div>
     </div>
@@ -184,7 +239,7 @@ export default function AuditPage() {
             disabled={!!exporting}
             style={{ fontSize: '13px' }}
           >
-            {exporting === 'csv' ? 'Exporting…' : '⬇ Export CSV'}
+            <ExportIcon /> {exporting === 'csv' ? 'Exporting…' : 'Export CSV'}
           </button>
           <button
             className="btn btn-success"
@@ -192,7 +247,7 @@ export default function AuditPage() {
             disabled={!!exporting}
             style={{ fontSize: '13px' }}
           >
-            {exporting === 'xlsx' ? 'Exporting…' : '⬇ Export XLSX'}
+            <ExportIcon /> {exporting === 'xlsx' ? 'Exporting…' : 'Export XLSX'}
           </button>
         </div>
       </div>
@@ -242,7 +297,7 @@ export default function AuditPage() {
             {/* FR-24 — Expense trend chart */}
             <div className="card">
               <h3 style={{ fontWeight: 700, fontSize: '15px', marginBottom: '1rem' }}>
-                📈 Expense Trend
+                <TrendIcon /> Expense Trend
                 <span style={{ fontWeight: 400, fontSize: '12px', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
                   Daily spending
                 </span>
@@ -253,7 +308,7 @@ export default function AuditPage() {
             {/* FR-26 — Category donut */}
             <div className="card">
               <h3 style={{ fontWeight: 700, fontSize: '15px', marginBottom: '1rem' }}>
-                🥧 Top Expense Categories
+                <PieChartIcon /> Top Expense Categories
               </h3>
               {summary?.category_breakdown && Object.keys(summary.category_breakdown).length > 0 ? (
                 <DonutChart breakdown={summary.category_breakdown} />
@@ -267,7 +322,7 @@ export default function AuditPage() {
           {budgetVsActual && budgetVsActual.rows?.length > 0 && (
             <div className="card" style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ fontWeight: 700, fontSize: '15px' }}>💼 Budget vs. Actual</h3>
+                <h3 style={{ fontWeight: 700, fontSize: '15px' }}><BudgetIcon /> Budget vs. Actual</h3>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                   Total budget: ${budgetVsActual.total_budget?.toFixed(2)}
                   {budgetVsActual.over_budget_count > 0 && (
@@ -313,7 +368,7 @@ export default function AuditPage() {
           {txHistory.length > 0 && (
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ fontWeight: 700, fontSize: '15px' }}>🧾 Transaction History</h3>
+                <h3 style={{ fontWeight: 700, fontSize: '15px' }}><HistoryIcon /> Transaction History</h3>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Recent resolved payments</span>
               </div>
               <div className="table-wrap" style={{ margin: 0 }}>

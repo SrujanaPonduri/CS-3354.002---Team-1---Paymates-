@@ -4,6 +4,16 @@ import React, { useState } from 'react';
 import client from '../api/client.js';
 import ErrorBanner from './ErrorBanner.jsx';
 
+function KeyIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+      <circle cx="5.5" cy="5.5" r="3.5" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M8 8L13 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M13 9L15 11L12 14L10 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 export default function ItemOwnershipModal({ item, currentUserId, allRoommates, onClose, onUpdate }) {
   const [owners, setOwners]           = useState([...(item.owners || [])]);
   const [newOwnerId, setNewOwnerId]   = useState('');
@@ -68,7 +78,7 @@ export default function ItemOwnershipModal({ item, currentUserId, allRoommates, 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
-        <h2 className="modal-title">🔑 Manage Ownership</h2>
+        <h2 className="modal-title"><KeyIcon /> Manage Ownership</h2>
         <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
           <strong style={{ color: 'var(--text)' }}>{item.name}</strong> · {item.category}
         </p>

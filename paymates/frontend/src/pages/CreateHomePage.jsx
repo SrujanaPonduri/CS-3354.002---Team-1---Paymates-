@@ -6,6 +6,15 @@ import client from '../api/client.js';
 import { useHome } from '../context/HomeContext.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
 
+function HomeIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ verticalAlign: 'middle', marginRight: '8px' }}>
+      <path d="M3 10L12 3L21 10V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V10Z" stroke="var(--primary)" strokeWidth="2" strokeLinejoin="round"/>
+      <path d="M9 21V13H15V21" stroke="var(--primary)" strokeWidth="2" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 export default function CreateHomePage() {
   const { currentUser, refreshHomes } = useHome();
   const navigate        = useNavigate();
@@ -58,7 +67,7 @@ export default function CreateHomePage() {
     <div style={{ maxWidth: 640 }}>
       <div className="page-header">
         <div>
-          <h1 className="page-title">🏠 Create a Home</h1>
+          <h1 className="page-title"><HomeIcon /> Create a Home</h1>
           <p className="page-subtitle">Set up a new shared home for you and your roommates</p>
         </div>
         <button className="btn btn-secondary" onClick={() => navigate('/homes')}>

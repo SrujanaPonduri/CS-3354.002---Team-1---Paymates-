@@ -6,6 +6,34 @@ import client from '../api/client.js';
 import { useHome } from '../context/HomeContext.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
 
+function CheckIcon() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="24" r="22" stroke="var(--success)" strokeWidth="3"/>
+      <polyline points="14,25 21,32 35,17" stroke="var(--success)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function BillBadgeIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ verticalAlign: 'middle', marginRight: '3px' }}>
+      <rect x="1" y="1.5" width="10" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+      <line x1="3" y1="4.5" x2="9" y2="4.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+      <line x1="3" y1="7" x2="7" y2="7" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function ExpenseBadgeIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ verticalAlign: 'middle', marginRight: '3px' }}>
+      <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.2"/>
+      <circle cx="6" cy="6" r="1.2" fill="currentColor"/>
+    </svg>
+  );
+}
+
 export default function DuesPage() {
   const { homeId }       = useParams();
   const { currentUser }  = useHome();
@@ -162,7 +190,7 @@ export default function DuesPage() {
         <p className="text-muted">Loading dues…</p>
       ) : dues.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">✅</div>
+          <div className="empty-icon"><CheckIcon /></div>
           <p className="empty-title">
             {statusFilter || userFilter ? 'No dues found' : 'All settled up!'}
           </p>
@@ -218,7 +246,7 @@ export default function DuesPage() {
 
                     <td>
                       <span className={`badge ${due.source_type === 'bill' ? 'badge-orange' : 'badge-blue'}`}>
-                        {due.source_type === 'bill' ? '🧾 BILL' : '💸 EXPENSE'}
+                        {due.source_type === 'bill' ? <><BillBadgeIcon /> BILL</> : <><ExpenseBadgeIcon /> EXPENSE</>}
                       </span>
                     </td>
 

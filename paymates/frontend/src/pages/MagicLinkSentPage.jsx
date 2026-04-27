@@ -6,6 +6,17 @@ import { useHome } from '../context/HomeContext.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
 import { verifyMagicLinkAndRoute } from '../auth/magicLinkVerify.js';
 
+function MailIcon() {
+  return (
+    <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+      <rect x="6" y="12" width="44" height="32" rx="4" stroke="var(--primary)" strokeWidth="2.5"/>
+      <path d="M6 16L28 34L50 16" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <line x1="6" y1="44" x2="20" y2="34" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="50" y1="44" x2="36" y2="34" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 export default function MagicLinkSentPage() {
   const { state }          = useLocation();
   const [searchParams]     = useSearchParams();
@@ -46,7 +57,7 @@ export default function MagicLinkSentPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ fontSize: '48px', marginBottom: '1rem' }}>✉️</div>
+          <MailIcon />
         </div>
 
         <h1 className="auth-title" style={{ textAlign: 'center' }}>

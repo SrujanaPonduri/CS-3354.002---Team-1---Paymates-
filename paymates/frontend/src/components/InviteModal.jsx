@@ -4,6 +4,24 @@ import React, { useState } from 'react';
 import client from '../api/client.js';
 import ErrorBanner from './ErrorBanner.jsx';
 
+function MailIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+      <rect x="1.5" y="3" width="13" height="10" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M1.5 5L8 10.5L14.5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ verticalAlign: 'middle', marginRight: '5px' }}>
+      <circle cx="7" cy="7" r="6" stroke="var(--success)" strokeWidth="1.5"/>
+      <polyline points="4,7 6.5,9.5 10,5" stroke="var(--success)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 export default function InviteModal({ homeId, inviterId, onClose, onSuccess }) {
   const [email, setEmail]     = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,14 +55,14 @@ export default function InviteModal({ homeId, inviterId, onClose, onSuccess }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
-        <h2 className="modal-title">📨 Invite a Roommate</h2>
+        <h2 className="modal-title"><MailIcon /> Invite a Roommate</h2>
 
         <ErrorBanner message={error} onDismiss={() => setError('')} />
 
         {token ? (
           <div>
             <p style={{ color: 'var(--success)', marginBottom: '1.25rem', fontSize: 14, fontWeight: 600 }}>
-              ✅ Invite created! Share this token with your roommate:
+              <CheckIcon /> Invite created! Share this token with your roommate:
             </p>
             <code style={{
               display: 'block', padding: '1rem', background: 'var(--surface-2)',

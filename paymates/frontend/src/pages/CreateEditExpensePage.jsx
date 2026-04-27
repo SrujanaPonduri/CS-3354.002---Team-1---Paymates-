@@ -8,6 +8,37 @@ import ErrorBanner from '../components/ErrorBanner.jsx';
 
 const FREQUENCIES = ['weekly', 'monthly', 'yearly'];
 
+function EditIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+      <path d="M13.5 3.5L16.5 6.5L7 16H4V13L13.5 3.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M11 5L15 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function NewExpenseIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+      <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.8"/>
+      <circle cx="10" cy="10" r="2.5" fill="currentColor"/>
+      <line x1="10" y1="2" x2="10" y2="5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <line x1="10" y1="15" x2="10" y2="18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+      <rect x="2" y="3" width="12" height="11" rx="2" stroke="var(--accent)" strokeWidth="1.5"/>
+      <line x1="2" y1="7" x2="14" y2="7" stroke="var(--accent)" strokeWidth="1.5"/>
+      <line x1="5" y1="1" x2="5" y2="5" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="11" y1="1" x2="11" y2="5" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 function addFrequency(dateStr, freq) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -105,7 +136,9 @@ export default function CreateEditExpensePage() {
     <div style={{ maxWidth: 720 }}>
       <div className="page-header">
         <div>
-          <h1 className="page-title">{isEdit ? '✏️ Edit Expense' : '💸 New Expense'}</h1>
+          <h1 className="page-title">
+            {isEdit ? <><EditIcon /> Edit Expense</> : <><NewExpenseIcon /> New Expense</>}
+          </h1>
           <p className="page-subtitle">{isEdit ? 'Update expense details' : 'Add a shared or recurring cost'}</p>
         </div>
         <button className="btn btn-secondary" onClick={() => navigate(`/homes/${homeId}/expenses`)}>
@@ -158,7 +191,7 @@ export default function CreateEditExpensePage() {
             </div>
             {nextDuePreview && (
               <div style={{ padding: '.85rem 1.25rem', background: 'var(--accent-light)', border: '2px solid var(--accent)', borderRadius: 'var(--r)', fontSize: 14, color: 'var(--accent)', marginBottom: '1rem', fontWeight: 600 }}>
-                📅 Next due: <strong>{nextDuePreview}</strong>
+                <CalendarIcon /> Next due: <strong>{nextDuePreview}</strong>
               </div>
             )}
           </div>

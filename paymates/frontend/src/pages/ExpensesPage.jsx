@@ -1,13 +1,37 @@
 // src/pages/ExpensesPage.jsx
-
-
-// src/pages/ExpensesPage.jsx
 // Updated design - PageNav now in RequireAuth
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import client from '../api/client.js';
 import ErrorBanner from '../components/ErrorBanner.jsx';
+
+function EmptyExpensesIcon() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="24" r="20" stroke="var(--text-muted)" strokeWidth="2.5"/>
+      <path d="M14 26L20 32L34 18" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function RecurringIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ verticalAlign: 'middle', marginRight: '3px' }}>
+      <path d="M2 6C2 3.79086 3.79086 2 6 2C8.20914 2 10 3.79086 10 6C10 8.20914 8.20914 10 6 10H4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+      <polyline points="3,8.5 1,10.5 3,12.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function OneTimeIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ verticalAlign: 'middle', marginRight: '3px' }}>
+      <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.2"/>
+      <path d="M3.5 6L5.5 8L8.5 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
 
 export default function ExpensesPage() {
   const { homeId }                = useParams();
@@ -51,7 +75,7 @@ export default function ExpensesPage() {
         <p className="text-muted">Loading expenses…</p>
       ) : expenses.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">💰</div>
+          <div className="empty-icon"><EmptyExpensesIcon /></div>
           <p className="empty-title">No expenses yet</p>
           <p className="text-muted">Track recurring bills like rent or one-time shared costs.</p>
         </div>
@@ -61,7 +85,7 @@ export default function ExpensesPage() {
             <div key={e.id} className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                 <span className={`badge ${e.expense_type === 'recurring' ? 'badge-orange' : 'badge-blue'}`}>
-                  {e.expense_type === 'recurring' ? '🔁 RECURRING' : '⚡ ONE-TIME'}
+                  {e.expense_type === 'recurring' ? <><RecurringIcon /> RECURRING</> : <><OneTimeIcon /> ONE-TIME</>}
                 </span>
                 <button
                   className="btn btn-ghost btn-sm"

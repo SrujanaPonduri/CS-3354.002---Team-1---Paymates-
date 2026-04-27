@@ -1,4 +1,4 @@
-// src/pages/HomesPage.jsx // 
+// src/pages/HomesPage.jsx
 
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -6,6 +6,35 @@ import client from '../api/client.js';
 import { useHome } from '../context/HomeContext.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
 import DeleteHomeModal from '../components/DeleteHomeModal.jsx';
+
+function EmptyHomeIcon() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <path d="M6 20L24 6L42 20V38C42 40.2091 40.2091 42 38 42H10C7.79086 42 6 40.2091 6 38V20Z" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinejoin="round"/>
+      <path d="M18 42V26H30V42" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function UsersIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ verticalAlign: 'middle', marginRight: '3px' }}>
+      <circle cx="5" cy="4" r="2" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M1 12C1 9.79086 2.79086 8 5 8C7.20914 8 9 9.79086 9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="10.5" cy="4" r="1.5" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M9 10H12.5L13.5 12.5H8L9 10Z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function DeleteIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ verticalAlign: 'middle', marginRight: '3px' }}>
+      <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5"/>
+      <line x1="4.5" y1="7" x2="9.5" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  );
+}
 
 export default function HomesPage() {
   const { currentUser, homes, setHomes, homesLoading, homesError, refreshHomes } = useHome();
@@ -53,7 +82,7 @@ export default function HomesPage() {
         <p className="text-muted">Loading homes…</p>
       ) : homes.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">🏠</div>
+          <div className="empty-icon"><EmptyHomeIcon /></div>
           <p className="empty-title">No homes yet</p>
           <p className="text-muted">Create a home to get started with your roommates.</p>
           <button className="btn btn-success" style={{ marginTop: '1.5rem' }} onClick={() => navigate('/homes/new')}>
@@ -77,10 +106,10 @@ export default function HomesPage() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '1.5rem', fontSize: '14px', color: 'var(--text-muted)' }}>
-                  <span>👥 {home.member_count} member{home.member_count !== 1 ? 's' : ''}</span>
+                  <span><UsersIcon /> {home.member_count} member{home.member_count !== 1 ? 's' : ''}</span>
                   {home.votes_cast > 0 && (
                     <span style={{ color: 'var(--error)' }}>
-                      🗳 {home.votes_cast}/{home.member_count} deletion votes
+                      <DeleteIcon /> {home.votes_cast}/{home.member_count} deletion votes
                     </span>
                   )}
                 </div>

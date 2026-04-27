@@ -10,10 +10,52 @@ import client from '../api/client.js';
 import { useHome } from '../context/HomeContext.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
 
+function UsersIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle', marginRight: '4px' }}>
+      <circle cx="6" cy="5" r="2" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M2 14C2 11.7909 3.79086 10 6 10C8.20914 10 10 11.7909 10 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="12" cy="5" r="1.5" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M10.5 11H14L15 14H9.5L10.5 11Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function HomeIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle', marginRight: '4px' }}>
+      <path d="M2 6L8 2L14 6V13C14 13.5523 13.5523 14 13 14H3C2.44772 14 2 13.5523 2 13V6Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+      <path d="M6 14V9H10V14" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle', marginRight: '4px' }}>
+      <rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M5 7V5C5 3.34315 6.34315 2 8 2C9.65685 2 11 3.34315 11 5V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="8" cy="10.5" r="0.8" fill="currentColor"/>
+    </svg>
+  );
+}
+
+function BudgetIcon() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <rect x="8" y="12" width="32" height="24" rx="4" stroke="var(--primary)" strokeWidth="2.5"/>
+      <path d="M32 18H36C38.2091 18 40 19.7909 40 22V26C40 28.2091 38.2091 30 36 30H32" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round"/>
+      <circle cx="32" cy="24" r="3" fill="var(--accent)"/>
+      <line x1="12" y1="22" x2="24" y2="22" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="12" y1="27" x2="20" y2="27" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 const VISIBILITY_OPTIONS = [
-  { value: 'all',     label: 'All Roommates',  icon: '👥' },
-  { value: 'group',   label: 'Group',           icon: '🏠' },
-  { value: 'private', label: 'Private',         icon: '🔒' },
+  { value: 'all',     label: 'All Roommates',  icon: <UsersIcon /> },
+  { value: 'group',   label: 'Group',           icon: <HomeIcon /> },
+  { value: 'private', label: 'Private',         icon: <LockIcon /> },
 ];
 
 const CATEGORY_SUGGESTIONS = [
@@ -59,9 +101,9 @@ function AddBudgetModal({ homeId, creatorId, onClose, onSuccess }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-        <div className="modal-header">
-          <h2 className="modal-title">Add Budget</h2>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '540px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 className="modal-title" style={{ marginBottom: 0 }}>Add Budget</h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
 
@@ -137,7 +179,7 @@ function AddBudgetModal({ homeId, creatorId, onClose, onSuccess }) {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+        <div className="modal-actions">
           <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
           <button className="btn btn-success" style={{ flex: 1 }} onClick={handleSubmit} disabled={saving}>
             {saving ? 'Saving…' : 'Add Budget'}
@@ -170,9 +212,9 @@ function AddBalanceModal({ budget, onClose, onSuccess }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: '380px' }}>
-        <div className="modal-header">
-          <h2 className="modal-title">Add to Balance</h2>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '380px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 className="modal-title" style={{ marginBottom: 0 }}>Add to Balance</h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
         <p className="text-muted" style={{ marginBottom: '1rem' }}>
@@ -190,7 +232,7 @@ function AddBalanceModal({ budget, onClose, onSuccess }) {
             onChange={e => setAmount(e.target.value)}
           />
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+        <div className="modal-actions">
           <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
           <button className="btn btn-success" style={{ flex: 1 }} onClick={handleSubmit} disabled={saving}>
             {saving ? 'Saving…' : 'Save'}
@@ -281,7 +323,7 @@ export default function BudgetsPage() {
         <p className="text-muted">Loading budgets…</p>
       ) : budgets.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">💰</div>
+          <div className="empty-icon"><BudgetIcon /></div>
           <p className="empty-title">No budgets yet</p>
           <p className="text-muted">Create budgets to track spending by category.</p>
           <button className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={() => setShowAdd(true)}>
@@ -295,7 +337,8 @@ export default function BudgetsPage() {
             const limit    = budget.budget_amount || 0;
             const pct      = limit > 0 ? Math.min(100, (spent / limit) * 100) : 0;
             const over     = spent > limit && limit > 0;
-            const visIcon  = VISIBILITY_OPTIONS.find(v => v.value === budget.visibility)?.icon || '👥';
+            const visOption = VISIBILITY_OPTIONS.find(v => v.value === budget.visibility);
+            const VisIconComponent = visOption?.icon || <UsersIcon />;
 
             return (
               <div
@@ -310,7 +353,7 @@ export default function BudgetsPage() {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span style={{ fontWeight: 700, fontSize: '16px' }}>{budget.category}</span>
-                      <span title={`Visibility: ${budget.visibility}`} style={{ fontSize: '14px' }}>{visIcon}</span>
+                      <span title={`Visibility: ${budget.visibility}`}>{VisIconComponent}</span>
                       {over && (
                         <span className="badge" style={{ background: 'var(--error)', color: 'white', fontSize: '10px' }}>
                           OVER BUDGET

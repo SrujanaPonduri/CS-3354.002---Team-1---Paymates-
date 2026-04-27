@@ -7,6 +7,19 @@ import { useHome } from '../context/HomeContext.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
 import InviteModal from '../components/InviteModal.jsx';
 
+function EmptyRoommatesIcon() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <circle cx="16" cy="15" r="8" stroke="var(--text-muted)" strokeWidth="2.5"/>
+      <path d="M2 39C2 30.1634 9.16344 23 18 23C26.8366 23 34 30.1634 34 39" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round"/>
+      <circle cx="34" cy="15" r="6" stroke="var(--text-muted)" strokeWidth="2"/>
+      <path d="M30 30H40L42 36H28L30 30Z" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <line x1="18" y1="11" x2="18" y2="19" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="14" y1="15" x2="22" y2="15" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 export default function RoommatesPage() {
   const { homeId }                    = useParams();
   const { currentUser }               = useHome();
@@ -74,7 +87,7 @@ export default function RoommatesPage() {
         <p className="text-muted">Loading roommates…</p>
       ) : roommates.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">🏠</div>
+          <div className="empty-icon"><EmptyRoommatesIcon /></div>
           <p className="empty-title">No roommates yet</p>
           <p className="text-muted">Invite someone to join your home!</p>
         </div>

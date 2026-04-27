@@ -1,9 +1,20 @@
-// src/pages/BillsPage.jsx 
+// src/pages/BillsPage.jsx
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import client from '../api/client.js';
 import ErrorBanner from '../components/ErrorBanner.jsx';
+
+function EmptyBillsIcon() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <rect x="8" y="8" width="32" height="36" rx="3" stroke="var(--text-muted)" strokeWidth="2.5"/>
+      <line x1="14" y1="18" x2="34" y2="18" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="14" y1="25" x2="30" y2="25" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="14" y1="32" x2="26" y2="32" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
 
 export default function BillsPage() {
   const { homeId }            = useParams();
@@ -47,7 +58,7 @@ export default function BillsPage() {
         <p className="text-muted">Loading bills…</p>
       ) : bills.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📄</div>
+          <div className="empty-icon"><EmptyBillsIcon /></div>
           <p className="empty-title">No bills yet</p>
           <p className="text-muted">Create one to start splitting costs.</p>
         </div>

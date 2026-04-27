@@ -5,6 +5,51 @@ import { Navigate, Outlet, useMatch, useNavigate } from 'react-router-dom';
 import { useHome } from '../context/HomeContext.jsx';
 import PageNav from './PageNavigation.jsx';
 
+function BrandLogo() {
+  return (
+    <svg width="30" height="30" viewBox="0 0 64 64" fill="none" style={{ flexShrink: 0 }}>
+      {/* Drop shadow layer */}
+      <g transform="translate(3, 3)">
+        <text 
+          x="32" 
+          y="46" 
+          textAnchor="middle" 
+          fontSize="52" 
+          fontWeight="900" 
+          fill="#1a1a2e"
+          fontFamily="system-ui, -apple-system, sans-serif"
+          stroke="#1a1a2e"
+          strokeWidth="10"
+          strokeLinejoin="round"
+        >P</text>
+      </g>
+      {/* Outline layer */}
+      <text 
+        x="32" 
+        y="46" 
+        textAnchor="middle" 
+        fontSize="52" 
+        fontWeight="900" 
+        fill="#1a1a2e"
+        stroke="#1a1a2e"
+        strokeWidth="10"
+        strokeLinejoin="round"
+        fontFamily="system-ui, -apple-system, sans-serif"
+      >P</text>
+      {/* Inner green P */}
+      <text 
+        x="32" 
+        y="46" 
+        textAnchor="middle" 
+        fontSize="52" 
+        fontWeight="900" 
+        fill="#00D084"
+        fontFamily="system-ui, -apple-system, sans-serif"
+      >P</text>
+    </svg>
+  );
+}
+
 export default function RequireAuth() {
   const { currentUser, setCurrentUser, setCurrentHomeId } = useHome();
   const navigate = useNavigate();
@@ -29,7 +74,16 @@ export default function RequireAuth() {
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       {/* Top Navigation Bar */}
       <div className="top-nav">
-        <div className="top-nav-brand">Paymates</div>
+        <div className="top-nav-brand" style={{ display: 'flex', alignItems: 'center', gap: '0px' }}>
+          <BrandLogo />
+          <span style={{ 
+            fontSize: '25px', 
+            fontWeight: 700, 
+            letterSpacing: '-0.4px',
+            color: 'var(--text)',
+            marginLeft: '-4px'
+          }}>aymates</span>
+        </div>
         <div className="top-nav-user">
           <div
             onClick={() => navigate('/homes')}

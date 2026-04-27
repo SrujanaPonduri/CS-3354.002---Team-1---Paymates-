@@ -34,6 +34,15 @@ function validatePhone(val) {
   return '';
 }
 
+function ProfileIcon() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="16" r="10" stroke="var(--primary)" strokeWidth="2.5"/>
+      <path d="M10 40C10 32.268 16.268 26 24 26C31.732 26 38 32.268 38 40" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 export default function AccountSetupPage() {
   const { state }          = useLocation();
   const token              = state?.token || '';
@@ -92,7 +101,7 @@ export default function AccountSetupPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo">👤</div>
+        <div className="auth-logo"><ProfileIcon /></div>
         <h1 className="auth-title">Set up your profile</h1>
         <p className="auth-subtitle">
           Finishing up for <strong style={{ color: '#a78bfa' }}>{email}</strong>

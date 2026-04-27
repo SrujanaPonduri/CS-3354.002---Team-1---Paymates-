@@ -4,6 +4,26 @@ import React, { useState } from 'react';
 import client from '../api/client.js';
 import ErrorBanner from './ErrorBanner.jsx';
 
+function DeleteIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+      <path d="M3 5H15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M7 2H11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M6 5V14C6 15.1046 6.89543 16 8 16H10C11.1046 16 12 15.1046 12 14V5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function WarningIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" style={{ verticalAlign: 'middle', marginRight: '5px' }}>
+      <path d="M7.5 1L14 13H1L7.5 1Z" stroke="var(--warning)" strokeWidth="1.5" strokeLinejoin="round"/>
+      <line x1="7.5" y1="5.5" x2="7.5" y2="8.5" stroke="var(--warning)" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="7.5" cy="10.5" r="0.7" fill="var(--warning)"/>
+    </svg>
+  );
+}
+
 export default function DeleteHomeModal({ home, currentUserId, onClose, onDeleted, onVoteCast }) {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
@@ -48,7 +68,7 @@ export default function DeleteHomeModal({ home, currentUserId, onClose, onDelete
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
-        <h2 className="modal-title">🗑 Delete Home</h2>
+        <h2 className="modal-title"><DeleteIcon /> Delete Home</h2>
 
         <ErrorBanner message={error} onDismiss={() => setError('')} />
 
@@ -60,7 +80,7 @@ export default function DeleteHomeModal({ home, currentUserId, onClose, onDelete
               marginBottom: '1.5rem',
             }}>
               <p style={{ color: 'var(--warning)', fontWeight: 700, marginBottom: '.75rem', fontSize: 15 }}>
-                ⚠ Unanimous consent required
+                <WarningIcon /> Unanimous consent required
               </p>
               <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
                 {voteResult.message}
@@ -93,7 +113,7 @@ export default function DeleteHomeModal({ home, currentUserId, onClose, onDelete
                 marginBottom: '1.5rem',
               }}>
                 <p style={{ fontSize: 13, color: 'var(--warning)', fontWeight: 700, marginBottom: '.75rem' }}>
-                  ⚠ Unanimous consent required
+                  <WarningIcon /> Unanimous consent required
                 </p>
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: '1rem' }}>
                   All {home.member_count} members must vote to delete this home.

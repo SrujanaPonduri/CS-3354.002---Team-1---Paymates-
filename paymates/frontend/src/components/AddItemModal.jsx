@@ -6,6 +6,16 @@ import ErrorBanner from './ErrorBanner.jsx';
 
 const CATEGORIES = ['Groceries', 'Furniture', 'Supplies', 'Electronics', 'Appliances', 'Other'];
 
+function BoxIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+      <path d="M2 5L8 2L14 5L8 8L2 5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+      <path d="M2 5V11L8 14L14 11V5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+      <line x1="8" y1="8" x2="8" y2="14" stroke="currentColor" strokeWidth="1.5"/>
+    </svg>
+  );
+}
+
 export default function AddItemModal({ homeId, addedByUserId, onClose, onSuccess }) {
   const [name, setName]               = useState('');
   const [category, setCategory]       = useState('');
@@ -44,7 +54,7 @@ export default function AddItemModal({ homeId, addedByUserId, onClose, onSuccess
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
-        <h2 className="modal-title">📦 Add Inventory Item</h2>
+        <h2 className="modal-title"><BoxIcon /> Add Inventory Item</h2>
 
         <ErrorBanner message={error} onDismiss={() => setError('')} />
 

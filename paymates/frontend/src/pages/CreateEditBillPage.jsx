@@ -33,6 +33,37 @@ function validateQty(val) {
   return '';
 }
 
+function EditIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+      <path d="M13.5 3.5L16.5 6.5L7 16H4V13L13.5 3.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M11 5L15 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function NewBillIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+      <rect x="2" y="3" width="16" height="14" rx="2" stroke="currentColor" strokeWidth="1.8"/>
+      <line x1="6" y1="8" x2="14" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="6" y1="11" x2="12" y2="11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M14 3V2C14 1.44772 14.4477 1 15 1C15.5523 1 16 1.44772 16 2V3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <circle cx="16" cy="2" r="1" fill="currentColor"/>
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ verticalAlign: 'middle', marginRight: '4px' }}>
+      <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M7 6V10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="7" cy="4" r="0.7" fill="currentColor"/>
+    </svg>
+  );
+}
+
 export default function CreateEditBillPage() {
   const { homeId, billId } = useParams();
   const navigate            = useNavigate();
@@ -96,7 +127,6 @@ export default function CreateEditBillPage() {
     setLineItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: value } : it));
   }, []);
 
-  // Validate price on space key
   const handlePriceKeyDown = useCallback((idx, e) => {
     if (e.key === ' ') {
       e.preventDefault();
@@ -105,7 +135,6 @@ export default function CreateEditBillPage() {
     }
   }, [lineItems, updateItem]);
 
-  // Validate qty on space key
   const handleQtyKeyDown = useCallback((idx, e) => {
     if (e.key === ' ') {
       e.preventDefault();
@@ -114,7 +143,6 @@ export default function CreateEditBillPage() {
     }
   }, [lineItems, updateItem]);
 
-  // Validate tax on space key
   const handleTaxKeyDown = (e) => {
     if (e.key === ' ') {
       e.preventDefault();
@@ -133,7 +161,6 @@ export default function CreateEditBillPage() {
       setError('Select at least one roommate.'); return;
     }
 
-    // Run all price/qty validations on save
     let hasFieldErrors = false;
     const checkedItems = lineItems.map((item, i) => {
       const unitPriceError = validatePrice(item.unitPrice);
@@ -203,7 +230,9 @@ export default function CreateEditBillPage() {
     <div style={{ maxWidth: 900 }}>
       <div className="page-header">
         <div>
-          <h1 className="page-title">{isEdit ? '✏️ Edit Bill' : '🧾 New Bill'}</h1>
+          <h1 className="page-title">
+            {isEdit ? <><EditIcon /> Edit Bill</> : <><NewBillIcon /> New Bill</>}
+          </h1>
           <p className="page-subtitle">{isEdit ? 'Update line items and split' : 'Add items and choose a split method'}</p>
         </div>
         <button className="btn btn-secondary" onClick={() => navigate(`/homes/${homeId}/bills`)}>
@@ -354,7 +383,7 @@ export default function CreateEditBillPage() {
           </table>
         </div>
         <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '0.75rem' }}>
-          💡 Press Space in any price or qty field to validate immediately.
+          <InfoIcon /> Press Space in any price or qty field to validate immediately.
         </p>
       </div>
 

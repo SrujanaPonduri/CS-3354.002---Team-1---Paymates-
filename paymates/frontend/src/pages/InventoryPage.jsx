@@ -15,6 +15,36 @@ import ItemOwnershipModal from '../components/ItemOwnershipModal.jsx';
 
 const CATEGORIES = ['All', 'Groceries', 'Furniture', 'Supplies', 'Electronics', 'Other'];
 
+function SearchIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <circle cx="6.5" cy="6.5" r="4.5" stroke="var(--text-dim)" strokeWidth="1.8"/>
+      <line x1="10" y1="10" x2="14.5" y2="14.5" stroke="var(--text-dim)" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function EmptyBoxIcon() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <rect x="8" y="12" width="32" height="28" rx="3" stroke="var(--text-muted)" strokeWidth="2.5"/>
+      <path d="M8 12L18 4H30L40 12" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <line x1="24" y1="18" x2="24" y2="34" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="18" y1="26" x2="30" y2="26" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function EmptySearchIcon() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <circle cx="22" cy="22" r="10" stroke="var(--text-muted)" strokeWidth="2.5"/>
+      <line x1="30" y1="30" x2="38" y2="38" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="18" y1="22" x2="26" y2="22" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 // Helper: highlight matching substring
 function HighlightMatch({ text, query }) {
   if (!query || !text) return <>{text}</>;
@@ -110,8 +140,10 @@ export default function InventoryPage() {
         <div style={{ position: 'relative', flex: '1', minWidth: '220px', maxWidth: '380px' }}>
           <span style={{
             position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
-            fontSize: '15px', color: 'var(--text-dim)', pointerEvents: 'none',
-          }}>🔍</span>
+            pointerEvents: 'none',
+          }}>
+            <SearchIcon />
+          </span>
           <input
             className="form-input"
             style={{ paddingLeft: '38px', paddingRight: searchQuery ? '36px' : '12px', height: '42px', fontSize: '14px' }}
@@ -161,13 +193,13 @@ export default function InventoryPage() {
         <p className="text-muted">Loading inventory…</p>
       ) : items.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📦</div>
+          <div className="empty-icon"><EmptyBoxIcon /></div>
           <p className="empty-title">No items yet</p>
           <p className="text-muted">Add items to track what belongs to whom.</p>
         </div>
       ) : filteredItems.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">🔍</div>
+          <div className="empty-icon"><EmptySearchIcon /></div>
           <p className="empty-title">No matching items</p>
           <p className="text-muted">
             {categoryFilter !== 'All' && searchQuery

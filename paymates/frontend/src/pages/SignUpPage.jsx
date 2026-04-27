@@ -1,21 +1,54 @@
 // src/pages/SignUpPage.jsx
-// ─────────────────────────────────────────────────────────────────────────────
-// Use Case: UC01 — FR-01: Register a new user via email → magic-link flow.
-//
-// Flow:
-//   1. User enters email → POST /api/auth/signup
-//   2. Backend sends a magic-link email (and may return token in dev if configured).
-//   3. Frontend navigates to MagicLinkSentPage with { email } and optional { token }.
-//
-// Error handling:
-//   409 → email already registered (prompt to log in instead)
-//   any → generic error shown in ErrorBanner
-// ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import client from '../api/client.js';
 import ErrorBanner from '../components/ErrorBanner.jsx';
+
+function LogoIcon() {
+  return (
+    <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+      {/* Drop shadow layer - offset to bottom right */}
+      <g transform="translate(4, 4)">
+        <text 
+          x="36" 
+          y="48" 
+          textAnchor="middle" 
+          fontSize="52" 
+          fontWeight="900" 
+          fill="#1a1a2e"
+          fontFamily="system-ui, -apple-system, sans-serif"
+          stroke="#1a1a2e"
+          strokeWidth="6"
+          strokeLinejoin="round"
+        >P</text>
+      </g>
+      {/* Outline layer - thick black P */}
+      <text 
+        x="36" 
+        y="48" 
+        textAnchor="middle" 
+        fontSize="52" 
+        fontWeight="900" 
+        fill="#1a1a2e"
+        stroke="#1a1a2e"
+        strokeWidth="6"
+        strokeLinejoin="round"
+        fontFamily="system-ui, -apple-system, sans-serif"
+      >P</text>
+      {/* Inner green P - slightly smaller */}
+      <text 
+        x="36" 
+        y="48" 
+        textAnchor="middle" 
+        fontSize="52" 
+        fontWeight="900" 
+        fill="#00D084"
+        fontFamily="system-ui, -apple-system, sans-serif"
+      >P</text>
+    </svg>
+  );
+}
 
 export default function SignUpPage() {
   const [email, setEmail]     = useState('');
@@ -29,8 +62,6 @@ export default function SignUpPage() {
     setLoading(true);
     try {
       const res = await client.post('/auth/signup', { email: email.trim() });
-      navigate('/magic-link-sent', { state: { token: res.data.token, email } });
-
       const nextState = { email: email.trim() };
       if (res.data.token) nextState.token = res.data.token;
       navigate('/magic-link-sent', { state: nextState });
@@ -48,7 +79,7 @@ export default function SignUpPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo">P</div>
+        <div className="auth-logo"><LogoIcon /></div>
         <h1 className="auth-title">Sign up</h1>
         
         <ErrorBanner message={error} onDismiss={() => setError('')} />
