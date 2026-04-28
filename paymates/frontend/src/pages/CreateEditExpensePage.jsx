@@ -133,7 +133,7 @@ export default function CreateEditExpensePage() {
   };
 
   return (
-    <div style={{ maxWidth: 720 }}>
+    <div style={{ maxWidth: 720, margin: "0 auto" }}>
       <div className="page-header">
         <div>
           <h1 className="page-title">

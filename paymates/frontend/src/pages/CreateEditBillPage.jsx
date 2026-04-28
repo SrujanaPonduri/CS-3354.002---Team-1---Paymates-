@@ -6,16 +6,9 @@ import client from '../api/client.js';
 import { useHome } from '../context/HomeContext.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
 import BillSplitPanel from '../components/BillSplitPanel.jsx';
+import { ITEM_CATEGORIES } from '../constants/categories.js';
 
 const BLANK_ITEM = () => ({ name: '', qty: 1, unitPrice: '', ownerIds: [], unitPriceError: '', qtyError: '' });
-
-const BILL_CATEGORIES = [
-  'Groceries', 'Utilities', 'Rent', 'Internet', 'Electricity', 'Gas', 'Water',
-  'Dining Out', 'Takeout / Delivery', 'Household Supplies', 'Laundry',
-  'Transportation', 'Streaming / Subscriptions', 'Medical / Health',
-  'Personal Care', 'Entertainment', 'Pet Supplies', 'Repairs / Maintenance',
-  'Insurance', 'Other',
-];
 
 function validatePrice(val) {
   if (val === '' || val === undefined) return '';
@@ -48,8 +41,6 @@ function NewBillIcon() {
       <rect x="2" y="3" width="16" height="14" rx="2" stroke="currentColor" strokeWidth="1.8"/>
       <line x1="6" y1="8" x2="14" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
       <line x1="6" y1="11" x2="12" y2="11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      <path d="M14 3V2C14 1.44772 14.4477 1 15 1C15.5523 1 16 1.44772 16 2V3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-      <circle cx="16" cy="2" r="1" fill="currentColor"/>
     </svg>
   );
 }
@@ -70,19 +61,20 @@ export default function CreateEditBillPage() {
   const { currentUser }     = useHome();
   const isEdit              = Boolean(billId);
 
-  const [title,              setTitle]              = useState('');
-  const [date,               setDate]               = useState(new Date().toISOString().split('T')[0]);
-  const [category,           setCategory]           = useState('');
-  const [splitType,          setSplitType]          = useState('evenly');
-  const [lineItems,          setLineItems]          = useState([BLANK_ITEM()]);
-  const [tax,                setTax]                = useState('');
-  const [taxError,           setTaxError]           = useState('');
-  const [assignedRoommates,  setAssignedRoommates]  = useState([]);
-  const [fixedAmounts,       setFixedAmounts]       = useState({});
-  const [receiptUrl,         setReceiptUrl]         = useState('');
-  const [roommates,          setRoommates]          = useState([]);
-  const [loading,            setLoading]            = useState(false);
-  const [error,              setError]              = useState('');
+  const [title,             setTitle]             = useState('');
+  const [date,              setDate]              = useState(new Date().toISOString().split('T')[0]);
+  const [category,          setCategory]          = useState('');
+  const [splitType,         setSplitType]         = useState('evenly');
+  const [lineItems,         setLineItems]         = useState([BLANK_ITEM()]);
+  const [tax,               setTax]               = useState('');
+  const [taxError,          setTaxError]          = useState('');
+  const [assignedRoommates, setAssignedRoommates] = useState([]);
+  const [fixedAmounts,      setFixedAmounts]      = useState({});
+  const [receiptUrl,        setReceiptUrl]        = useState('');
+  const [roommates,         setRoommates]         = useState([]);
+  const [loading,           setLoading]           = useState(false);
+  const [error,             setError]             = useState('');
+  const [addToInventory,    setAddToInventory]    = useState(true);
 
   useEffect(() => {
     client.get(`/homes/${homeId}/roommates`)
@@ -128,26 +120,15 @@ export default function CreateEditBillPage() {
   }, []);
 
   const handlePriceKeyDown = useCallback((idx, e) => {
-    if (e.key === ' ') {
-      e.preventDefault();
-      const msg = validatePrice(lineItems[idx].unitPrice);
-      updateItem(idx, 'unitPriceError', msg);
-    }
+    if (e.key === ' ') { e.preventDefault(); updateItem(idx, 'unitPriceError', validatePrice(lineItems[idx].unitPrice)); }
   }, [lineItems, updateItem]);
 
   const handleQtyKeyDown = useCallback((idx, e) => {
-    if (e.key === ' ') {
-      e.preventDefault();
-      const msg = validateQty(lineItems[idx].qty);
-      updateItem(idx, 'qtyError', msg);
-    }
+    if (e.key === ' ') { e.preventDefault(); updateItem(idx, 'qtyError', validateQty(lineItems[idx].qty)); }
   }, [lineItems, updateItem]);
 
   const handleTaxKeyDown = (e) => {
-    if (e.key === ' ') {
-      e.preventDefault();
-      setTaxError(validatePrice(tax));
-    }
+    if (e.key === ' ') { e.preventDefault(); setTaxError(validatePrice(tax)); }
   };
 
   const handleItemOwners = useCallback((idx, ownerIds) => {
@@ -162,7 +143,7 @@ export default function CreateEditBillPage() {
     }
 
     let hasFieldErrors = false;
-    const checkedItems = lineItems.map((item, i) => {
+    const checkedItems = lineItems.map(item => {
       const unitPriceError = validatePrice(item.unitPrice);
       const qtyError = validateQty(item.qty);
       if (unitPriceError || qtyError) hasFieldErrors = true;
@@ -174,10 +155,7 @@ export default function CreateEditBillPage() {
     setTaxError(taxMsg);
     if (taxMsg) hasFieldErrors = true;
 
-    if (hasFieldErrors) {
-      setError('Please fix the highlighted errors before saving.');
-      return;
-    }
+    if (hasFieldErrors) { setError('Please fix the highlighted errors before saving.'); return; }
 
     setError('');
     setLoading(true);
@@ -215,6 +193,23 @@ export default function CreateEditBillPage() {
         if (receiptUrl.trim()) {
           await client.post(`/bills/${savedId}/receipt`, { receipt_url: receiptUrl.trim() });
         }
+
+        // Feature 5: auto-add line items to inventory
+        if (addToInventory && currentUser?.id) {
+          const validItems = lineItems.filter(i => i.name.trim());
+          await Promise.allSettled(
+            validItems.map(i =>
+              client.post(`/homes/${homeId}/items`, {
+                added_by:     currentUser.id,
+                name:         i.name.trim(),
+                category:     category.trim() || '',
+                quantity:     Math.max(0, parseFloat(i.qty) || 1),
+                unit_price:   Math.max(0, parseFloat(i.unitPrice) || 0),
+                purchased_on: date,
+              })
+            )
+          );
+        }
       }
       navigate(`/homes/${homeId}/bills`);
     } catch (err) {
@@ -227,11 +222,12 @@ export default function CreateEditBillPage() {
   const perPerson = assignedRoommates.length > 0 ? total / assignedRoommates.length : 0;
 
   return (
-    <div style={{ maxWidth: 900 }}>
+    // Feature 4: centered form with max-width and auto margins
+    <div style={{ maxWidth: 900, margin: '0 auto' }}>
       <div className="page-header">
         <div>
           <h1 className="page-title">
-            {isEdit ? <><EditIcon /> Edit Bill</> : <><NewBillIcon /> New Bill</>}
+            {isEdit ? <><EditIcon />Edit Bill</> : <><NewBillIcon />New Bill</>}
           </h1>
           <p className="page-subtitle">{isEdit ? 'Update line items and split' : 'Add items and choose a split method'}</p>
         </div>
@@ -242,7 +238,7 @@ export default function CreateEditBillPage() {
 
       <ErrorBanner message={error} onDismiss={() => setError('')} />
 
-      {/* Basic info */}
+      {/* Bill details */}
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <h3 style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: '1.25rem', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>Bill Details</h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.25rem' }}>
@@ -256,16 +252,9 @@ export default function CreateEditBillPage() {
           </div>
           <div className="form-group" style={{ gridColumn: '1 / 2' }}>
             <label className="form-label">CATEGORY</label>
-            <select
-              className="form-input"
-              value={category}
-              onChange={e => setCategory(e.target.value)}
-              style={{ cursor: 'pointer' }}
-            >
+            <select className="form-input" value={category} onChange={e => setCategory(e.target.value)} style={{ cursor: 'pointer' }}>
               <option value="">— Select a category —</option>
-              {BILL_CATEGORIES.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
+              {ITEM_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
           </div>
           <div className="form-group">
@@ -280,9 +269,7 @@ export default function CreateEditBillPage() {
               onChange={e => { setTax(e.target.value); if (taxError) setTaxError(''); }}
               onKeyDown={handleTaxKeyDown}
             />
-            {taxError && (
-              <p style={{ fontSize: '11px', color: 'var(--danger, #e53e3e)', marginTop: '0.25rem' }}>⚠ {taxError}</p>
-            )}
+            {taxError && <p style={{ fontSize: '11px', color: 'var(--danger, #e53e3e)', marginTop: '0.25rem' }}>⚠ {taxError}</p>}
           </div>
           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
             <label className="form-label">RECEIPT IMAGE URL</label>
@@ -329,10 +316,7 @@ export default function CreateEditBillPage() {
                     <td>
                       <input
                         className="form-input"
-                        style={{
-                          padding: '.5rem .75rem',
-                          borderColor: item.qtyError ? 'var(--danger, #e53e3e)' : undefined,
-                        }}
+                        style={{ padding: '.5rem .75rem', borderColor: item.qtyError ? 'var(--danger, #e53e3e)' : undefined }}
                         type="text"
                         inputMode="decimal"
                         placeholder="1"
@@ -340,17 +324,12 @@ export default function CreateEditBillPage() {
                         onChange={e => { updateItem(idx, 'qty', e.target.value); if (item.qtyError) updateItem(idx, 'qtyError', ''); }}
                         onKeyDown={e => handleQtyKeyDown(idx, e)}
                       />
-                      {item.qtyError && (
-                        <p style={{ fontSize: '10px', color: 'var(--danger, #e53e3e)', margin: '2px 0 0' }}>⚠ {item.qtyError}</p>
-                      )}
+                      {item.qtyError && <p style={{ fontSize: '10px', color: 'var(--danger, #e53e3e)', margin: '2px 0 0' }}>⚠ {item.qtyError}</p>}
                     </td>
                     <td>
                       <input
                         className="form-input"
-                        style={{
-                          padding: '.5rem .75rem',
-                          borderColor: item.unitPriceError ? 'var(--danger, #e53e3e)' : undefined,
-                        }}
+                        style={{ padding: '.5rem .75rem', borderColor: item.unitPriceError ? 'var(--danger, #e53e3e)' : undefined }}
                         type="text"
                         inputMode="decimal"
                         placeholder="0.00"
@@ -358,9 +337,7 @@ export default function CreateEditBillPage() {
                         onChange={e => { updateItem(idx, 'unitPrice', e.target.value); if (item.unitPriceError) updateItem(idx, 'unitPriceError', ''); }}
                         onKeyDown={e => handlePriceKeyDown(idx, e)}
                       />
-                      {item.unitPriceError && (
-                        <p style={{ fontSize: '10px', color: 'var(--danger, #e53e3e)', margin: '2px 0 0' }}>⚠ {item.unitPriceError}</p>
-                      )}
+                      {item.unitPriceError && <p style={{ fontSize: '10px', color: 'var(--danger, #e53e3e)', margin: '2px 0 0' }}>⚠ {item.unitPriceError}</p>}
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--primary-dark)' }}>
                       ${sub.toFixed(2)}
@@ -372,9 +349,7 @@ export default function CreateEditBillPage() {
                         style={{ padding: '4px 10px' }}
                         onClick={() => setLineItems(p => p.filter((_, i) => i !== idx))}
                         disabled={lineItems.length === 1}
-                      >
-                        ✕
-                      </button>
+                      >✕</button>
                     </td>
                   </tr>
                 );
@@ -385,18 +360,30 @@ export default function CreateEditBillPage() {
         <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '0.75rem' }}>
           <InfoIcon /> Press Space in any price or qty field to validate immediately.
         </p>
+
+        {/* Feature 5: auto-add to inventory toggle */}
+        {!isEdit && (
+          <label className="checkbox-row" style={{ marginTop: '1rem', cursor: 'pointer', fontSize: 13 }}>
+            <input
+              type="checkbox"
+              checked={addToInventory}
+              onChange={e => setAddToInventory(e.target.checked)}
+            />
+            <span>Automatically add these line items to the home inventory</span>
+          </label>
+        )}
       </div>
 
       {/* Split panel */}
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <h3 style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: '1.25rem', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>Split Configuration</h3>
         <BillSplitPanel
-          splitType={splitType}          onSplitTypeChange={setSplitType}
-          roommates={roommates}          assignedRoommates={assignedRoommates}
+          splitType={splitType}         onSplitTypeChange={setSplitType}
+          roommates={roommates}         assignedRoommates={assignedRoommates}
           onAssignedChange={setAssignedRoommates}
           total={total}
-          fixedAmounts={fixedAmounts}    onFixedAmountsChange={setFixedAmounts}
-          lineItems={lineItems}          onItemOwnersChange={handleItemOwners}
+          fixedAmounts={fixedAmounts}   onFixedAmountsChange={setFixedAmounts}
+          lineItems={lineItems}         onItemOwnersChange={handleItemOwners}
         />
       </div>
 

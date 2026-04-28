@@ -64,7 +64,7 @@ export default function CreateHomePage() {
   };
 
   return (
-    <div style={{ maxWidth: 640 }}>
+    <div style={{ maxWidth: 640, margin: "0 auto" }}>
       <div className="page-header">
         <div>
           <h1 className="page-title"><HomeIcon /> Create a Home</h1>

@@ -3,8 +3,7 @@
 import React, { useState } from 'react';
 import client from '../api/client.js';
 import ErrorBanner from './ErrorBanner.jsx';
-
-const CATEGORIES = ['Groceries', 'Furniture', 'Supplies', 'Electronics', 'Appliances', 'Other'];
+import { ITEM_CATEGORIES } from '../constants/categories.js';
 
 function BoxIcon() {
   return (
@@ -27,7 +26,6 @@ export default function AddItemModal({ homeId, addedByUserId, onClose, onSuccess
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (addedByUserId == null) { setError('User ID is required.'); return; }
     if (!name.trim()) { setError('Item name is required.'); return; }
     if (parseFloat(quantity) <= 0) { setError('Quantity must be greater than zero.'); return; }
@@ -35,11 +33,11 @@ export default function AddItemModal({ homeId, addedByUserId, onClose, onSuccess
     setLoading(true);
     try {
       await client.post(`/homes/${homeId}/items`, {
-        added_by:    addedByUserId,
-        name:        name.trim(),
+        added_by:     addedByUserId,
+        name:         name.trim(),
         category,
-        quantity:    parseFloat(quantity) || 1,
-        unit_price:  parseFloat(unitPrice) || 0,
+        quantity:     parseFloat(quantity) || 1,
+        unit_price:   parseFloat(unitPrice) || 0,
         purchased_on: purchasedOn,
       });
       onSuccess();
@@ -55,9 +53,7 @@ export default function AddItemModal({ homeId, addedByUserId, onClose, onSuccess
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <h2 className="modal-title"><BoxIcon /> Add Inventory Item</h2>
-
         <ErrorBanner message={error} onDismiss={() => setError('')} />
-
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">ITEM NAME *</label>
@@ -70,15 +66,13 @@ export default function AddItemModal({ homeId, addedByUserId, onClose, onSuccess
               autoFocus
             />
           </div>
-
           <div className="form-group">
             <label className="form-label">CATEGORY</label>
             <select className="form-select" value={category} onChange={e => setCategory(e.target.value)}>
               <option value="">Select category…</option>
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              {ITEM_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
             <div className="form-group">
               <label className="form-label">QUANTITY *</label>
@@ -106,7 +100,6 @@ export default function AddItemModal({ homeId, addedByUserId, onClose, onSuccess
               />
             </div>
           </div>
-
           <div className="form-group">
             <label className="form-label">PURCHASE DATE</label>
             <input
@@ -116,7 +109,6 @@ export default function AddItemModal({ homeId, addedByUserId, onClose, onSuccess
               onChange={e => setPurchasedOn(e.target.value)}
             />
           </div>
-
           <div className="modal-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose}>CANCEL</button>
             <button type="submit" className="btn btn-success" disabled={loading}>

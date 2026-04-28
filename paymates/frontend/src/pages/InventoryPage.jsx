@@ -1,9 +1,4 @@
 // src/pages/InventoryPage.jsx
-// FR-18: View all items with owners
-// FR-19: Search for items (search bar — name, category, owner names)
-// FR-32: Add item to inventory list
-// FR-33: Search for a specific item in inventory
-// FR-34: View the inventory list
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
@@ -12,8 +7,10 @@ import { useHome } from '../context/HomeContext.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
 import AddItemModal from '../components/AddItemModal.jsx';
 import ItemOwnershipModal from '../components/ItemOwnershipModal.jsx';
+import { ITEM_CATEGORIES } from '../constants/categories.js';
 
-const CATEGORIES = ['All', 'Groceries', 'Furniture', 'Supplies', 'Electronics', 'Other'];
+const MAIN_CATEGORIES = ['All', 'Groceries', 'Furniture', 'Supplies', 'Electronics', 'Appliances', 'Other'];
+const EXTENDED_CATEGORIES = ITEM_CATEGORIES.filter(c => !MAIN_CATEGORIES.includes(c));
 
 function SearchIcon() {
   return (
@@ -45,7 +42,6 @@ function EmptySearchIcon() {
   );
 }
 
-// Helper: highlight matching substring
 function HighlightMatch({ text, query }) {
   if (!query || !text) return <>{text}</>;
   const q = query.trim().toLowerCase();
@@ -63,19 +59,20 @@ function HighlightMatch({ text, query }) {
 }
 
 export default function InventoryPage() {
-  const { homeId }            = useParams();
-  const { currentUser }       = useHome();
-  const [items, setItems]     = useState([]);
-  const [total, setTotal]     = useState(0);
+  const { homeId }              = useParams();
+  const { currentUser }         = useHome();
+  const [items, setItems]       = useState([]);
+  const [total, setTotal]       = useState(0);
   const [roommates, setRoommates] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState('');
-  const [showAdd, setShowAdd] = useState(false);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState('');
+  const [showAdd, setShowAdd]   = useState(false);
   const [selected, setSelected] = useState(null);
+  const [deletingId, setDeletingId] = useState('');
 
-  // Search & filter state (FR-19 / FR-33)
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [searchQuery, setSearchQuery]         = useState('');
+  const [categoryFilter, setCategoryFilter]   = useState('All');
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -98,7 +95,21 @@ export default function InventoryPage() {
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
-  // Client-side search + category filter
+  const handleDeleteItem = async (item) => {
+    if (!window.confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
+    setDeletingId(item.id);
+    setError('');
+    try {
+      await client.delete(`/items/${item.id}`, { data: { requester_id: currentUser?.id } });
+      setItems(prev => prev.filter(i => i.id !== item.id));
+      setTotal(prev => prev - 1);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to delete item.');
+    } finally {
+      setDeletingId('');
+    }
+  };
+
   const filteredItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return items.filter((item) => {
@@ -135,13 +146,9 @@ export default function InventoryPage() {
 
       <ErrorBanner message={error} onDismiss={() => setError('')} />
 
-      {/* Search bar + category filter (FR-19 / FR-33) */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: '1', minWidth: '220px', maxWidth: '380px' }}>
-          <span style={{
-            position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
-            pointerEvents: 'none',
-          }}>
+          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
             <SearchIcon />
           </span>
           <input
@@ -155,18 +162,14 @@ export default function InventoryPage() {
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              style={{
-                position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--text-dim)', fontSize: '18px', lineHeight: 1,
-              }}
+              style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: '18px', lineHeight: 1 }}
               title="Clear search"
             >×</button>
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-          {CATEGORIES.map(cat => (
+        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          {MAIN_CATEGORIES.map(cat => (
             <button
               key={cat}
               className={`btn btn-sm ${categoryFilter === cat ? 'btn-primary' : 'btn-secondary'}`}
@@ -176,14 +179,36 @@ export default function InventoryPage() {
               {cat}
             </button>
           ))}
+
+          {/* Extended categories — shown when expanded */}
+          {showAllCategories && EXTENDED_CATEGORIES.map(cat => (
+            <button
+              key={cat}
+              className={`btn btn-sm ${categoryFilter === cat ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ fontSize: '12px', padding: '6px 14px', height: '36px' }}
+              onClick={() => setCategoryFilter(cat)}
+            >
+              {cat}
+            </button>
+          ))}
+
+          <button
+            className="btn btn-ghost btn-sm"
+            style={{ fontSize: '12px', height: '36px', color: 'var(--accent)', borderColor: 'var(--accent)', border: '1.5px dashed' }}
+            onClick={() => {
+              setShowAllCategories(p => !p);
+              // If collapsing and an extended category is selected, reset to All
+              if (showAllCategories && EXTENDED_CATEGORIES.includes(categoryFilter)) {
+                setCategoryFilter('All');
+              }
+            }}
+          >
+            {showAllCategories ? '▲ Show less' : '▼ More categories'}
+          </button>
         </div>
 
         {isFiltering && (
-          <button
-            className="btn btn-ghost btn-sm"
-            style={{ fontSize: '12px', color: 'var(--text-muted)' }}
-            onClick={clearSearch}
-          >
+          <button className="btn btn-ghost btn-sm" style={{ fontSize: '12px', color: 'var(--text-muted)' }} onClick={clearSearch}>
             Clear filters
           </button>
         )}
@@ -223,7 +248,7 @@ export default function InventoryPage() {
                 <th style={{ textAlign: 'right' }}>UNIT PRICE</th>
                 <th>OWNERS</th>
                 <th>PURCHASED</th>
-                <th></th>
+                <th style={{ textAlign: 'center' }}>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -231,18 +256,15 @@ export default function InventoryPage() {
                 const ownerRoommates = (item.owners || [])
                   .map(uid => roommates.find(r => r.id === uid))
                   .filter(Boolean);
-
                 return (
                   <tr key={item.id}>
                     <td style={{ fontWeight: 600 }}>
                       <HighlightMatch text={item.name} query={searchQuery} />
                     </td>
                     <td>
-                      {item.category ? (
-                        <span className="badge badge-blue">{item.category}</span>
-                      ) : (
-                        <span className="text-dim">—</span>
-                      )}
+                      {item.category
+                        ? <span className="badge badge-blue">{item.category}</span>
+                        : <span className="text-dim">—</span>}
                     </td>
                     <td style={{ textAlign: 'right' }}>{item.quantity}</td>
                     <td style={{ textAlign: 'right', color: 'var(--accent)', fontWeight: 600 }}>
@@ -251,25 +273,28 @@ export default function InventoryPage() {
                     <td>
                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                         {ownerRoommates.map((rm, i) => (
-                          <div
-                            key={i}
-                            className="avatar"
-                            style={{ width: '28px', height: '28px', fontSize: '11px' }}
-                            title={rm.name}
-                          >
+                          <div key={i} className="avatar" style={{ width: '28px', height: '28px', fontSize: '11px' }} title={rm.name}>
                             {rm.name.charAt(0).toUpperCase()}
                           </div>
                         ))}
-                        {ownerRoommates.length === 0 && (
-                          <span className="text-dim" style={{ fontSize: '13px' }}>—</span>
-                        )}
+                        {ownerRoommates.length === 0 && <span className="text-dim" style={{ fontSize: '13px' }}>—</span>}
                       </div>
                     </td>
                     <td className="text-muted">{item.purchased_on || '—'}</td>
-                    <td>
-                      <button className="btn btn-ghost btn-sm" onClick={() => setSelected(item)}>
-                        MANAGE
-                      </button>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                        <button className="btn btn-ghost btn-sm" onClick={() => setSelected(item)}>
+                          MANAGE
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleDeleteItem(item)}
+                          disabled={deletingId === item.id}
+                          title="Delete item"
+                        >
+                          {deletingId === item.id ? '…' : '✕'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

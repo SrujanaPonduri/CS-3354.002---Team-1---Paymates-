@@ -208,3 +208,34 @@ def remove_owner(item_id, owner_id):
 
     item["owners"].remove(owner_id)
     return jsonify({"item": item}), 200
+
+
+# ---------------------------------------------------------------------------
+# UC07 — Delete an item from inventory
+# ---------------------------------------------------------------------------
+# DELETE /api/items/<item_id>
+# Body: { requester_id }
+@items_bp.route("/items/<item_id>", methods=["DELETE"])
+def delete_item(item_id):
+    """Delete an inventory item. Any member of the home may delete an item.
+
+    Returns 404 if the item does not exist.
+    Returns 403 if requester is not a member of the item's home.
+    Returns 200 on success.
+    """
+    item = DB["items"].get(item_id)
+    if not item:
+        return jsonify({"error": "Item not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    requester_id = (data.get("requester_id") or "").strip()
+
+    if not requester_id:
+        return jsonify({"error": "requester_id is required"}), 400
+
+    home = DB["homes"].get(item["home_id"])
+    if not home or requester_id not in home["roommate_ids"]:
+        return jsonify({"error": "You are not a member of this home"}), 403
+
+    DB["items"].pop(item_id, None)
+    return jsonify({"deleted": True, "message": "Item deleted successfully"}), 200
