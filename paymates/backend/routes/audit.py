@@ -100,13 +100,34 @@ def _expenses_in_period(home_id: str, start: str, end: str) -> list[dict]:
     ]
 
 
-def _category_totals(bills: list, expenses: list) -> dict[str, float]:
-    """Sum spend by category across bills and expenses."""
+def _items_in_period(home_id: str, start: str, end: str) -> list[dict]:
+    """Return inventory items purchased within the period for this home."""
+    return [
+        i for i in DB["items"].values()
+        if i.get("home_id") == home_id
+        and start <= (i.get("purchased_on") or "9999") <= end
+    ]
+
+
+def _item_total(item: dict) -> float:
+    """Line-total cost of an inventory item (quantity × unit_price)."""
+    try:
+        return round(float(item.get("quantity", 0) or 0)
+                     * float(item.get("unit_price", 0) or 0), 2)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _category_totals(bills: list, expenses: list,
+                     items: list | None = None) -> dict[str, float]:
+    """Sum spend by category across bills, expenses and inventory items."""
     totals: dict[str, float] = defaultdict(float)
     for b in bills:
         totals[b.get("category") or "Uncategorised"] += b.get("total", 0)
     for e in expenses:
         totals[e.get("title") or "Expense"] += e.get("amount", 0)
+    for i in (items or []):
+        totals[i.get("category") or "Uncategorised"] += _item_total(i)
     return dict(totals)
 
 
@@ -119,9 +140,11 @@ def audit_summary(home_id):
     """FR-26: Return key financial metrics for the requested period.
 
     Returns:
-      total_spending      — sum of bill totals + expense amounts
+      total_spending      — sum of bill totals + expense amounts + item costs
       total_bills         — count of bills
       total_expenses      — count of expenses
+      total_items         — count of inventory items purchased in period
+      total_transactions  — bills + expenses + items
       recurring_expenses  — count of recurring expenses
       top_category        — category with highest spend
       category_breakdown  — dict of category → total spend
@@ -133,8 +156,9 @@ def audit_summary(home_id):
     start, end  = _parse_period(request.args)
     bills       = _bills_in_period(home_id, start, end)
     expenses    = _expenses_in_period(home_id, start, end)
+    items       = _items_in_period(home_id, start, end)
 
-    cat_totals  = _category_totals(bills, expenses)
+    cat_totals  = _category_totals(bills, expenses, items)
     top_cat     = max(cat_totals, key=cat_totals.get) if cat_totals else None
     total_spend = round(sum(cat_totals.values()), 2)
 
@@ -151,6 +175,8 @@ def audit_summary(home_id):
         "total_spending":     total_spend,
         "total_bills":        len(bills),
         "total_expenses":     len(expenses),
+        "total_items":        len(items),
+        "total_transactions": len(bills) + len(expenses) + len(items),
         "recurring_expenses": recurring_count,
         "top_category":       top_cat,
         "top_category_amount": round(cat_totals.get(top_cat, 0), 2) if top_cat else 0,
@@ -179,6 +205,7 @@ def audit_trends(home_id):
     start, end  = _parse_period(request.args)
     bills       = _bills_in_period(home_id, start, end)
     expenses    = _expenses_in_period(home_id, start, end)
+    items       = _items_in_period(home_id, start, end)
 
     # Aggregate by date
     daily: dict[str, float] = defaultdict(float)
@@ -190,6 +217,10 @@ def audit_trends(home_id):
         d = e.get("start_date", "")
         if d:
             daily[d] += e.get("amount", 0)
+    for i in items:
+        d = i.get("purchased_on", "")
+        if d:
+            daily[d] += _item_total(i)
 
     # Build a full day-by-day series (zero-fill gaps)
     today_str   = date.today().isoformat()
@@ -237,6 +268,7 @@ def budget_vs_actual(home_id):
     start, end = _parse_period(request.args)
     bills      = _bills_in_period(home_id, start, end)
     expenses   = _expenses_in_period(home_id, start, end)
+    items      = _items_in_period(home_id, start, end)
 
     # Period month/year for matching budgets
     try:
@@ -246,23 +278,29 @@ def budget_vs_actual(home_id):
     except ValueError:
         month_f = year_f = None
 
-    # Actual spend per category
+    # Actual spend per category — bills + expenses + inventory items
     actual: dict[str, float] = defaultdict(float)
     for b in bills:
         actual[b.get("category") or "Uncategorised"] += b.get("total", 0)
     for e in expenses:
         actual[e.get("title") or "Expense"] += e.get("amount", 0)
+    for i in items:
+        actual[i.get("category") or "Uncategorised"] += _item_total(i)
 
-    # Budgets for this home (filter by month/year if possible)
+    # Budgets for this home (filter by month/year only when budget specifies them).
+    # Supports both schemas in DB["budgets"]:
+    #   • UC-12 audit:   budget_amount + month + year
+    #   • UC-11 budgets: limit (no month/year)
     budgets_for_home: dict[str, float] = {}
     for bgt in DB["budgets"].values():
         if bgt["home_id"] != home_id:
             continue
-        if month_f and bgt.get("month") != month_f:
+        if month_f and bgt.get("month") and bgt.get("month") != month_f:
             continue
-        if year_f and bgt.get("year") != year_f:
+        if year_f and bgt.get("year") and bgt.get("year") != year_f:
             continue
-        budgets_for_home[bgt["category"]] = bgt.get("budget_amount", 0)
+        amt = bgt.get("budget_amount", bgt.get("limit", 0)) or 0
+        budgets_for_home[bgt["category"]] = amt
 
     # Merge all categories
     all_cats = set(actual.keys()) | set(budgets_for_home.keys())
@@ -287,12 +325,108 @@ def budget_vs_actual(home_id):
 
     total_budget = round(sum(budgets_for_home.values()), 2)
     total_spent  = round(sum(actual.values()), 2)
+    # Spend that falls inside categories the user has actually budgeted —
+    # use this for the audit "Budget Used" metric so spending in unbudgeted
+    # categories does not skew the percentage.
+    budgeted_actual_spent = round(
+        sum(actual.get(cat, 0) for cat in budgets_for_home), 2
+    )
+    budget_used_pct = round(budgeted_actual_spent / total_budget * 100, 1) \
+        if total_budget > 0 else None
 
     return jsonify({
-        "rows":               rows,
-        "total_budget":       total_budget,
-        "total_spent":        total_spent,
-        "over_budget_count":  over_budget_count,
+        "rows":                  rows,
+        "total_budget":          total_budget,
+        "total_spent":           total_spent,
+        "budgeted_actual_spent": budgeted_actual_spent,
+        "budget_used_pct":       budget_used_pct,
+        "over_budget_count":     over_budget_count,
+        "period": {"start_date": start, "end_date": end},
+    }), 200
+
+
+# ---------------------------------------------------------------------------
+# Unified transaction history — bills + expenses + items in one feed
+# ---------------------------------------------------------------------------
+# GET /api/homes/<home_id>/audit/transactions
+@audit_bp.route("/homes/<home_id>/audit/transactions", methods=["GET"])
+def audit_transactions(home_id):
+    """Return a unified transaction list (bills + expenses + inventory items).
+
+    Query params:
+      period, start_date, end_date — same as other audit endpoints
+      per_page                     — max records returned (default 50, max 200)
+
+    Each record shape:
+      { id, type, title, category, date, amount, by_id, by_name, extra }
+      type ∈ "bill" | "expense" | "item"
+    """
+    if home_id not in DB["homes"]:
+        return jsonify({"error": "Home not found"}), 404
+
+    try:
+        per_page = min(200, max(1, int(request.args.get("per_page", 50))))
+    except (TypeError, ValueError):
+        per_page = 50
+
+    start, end = _parse_period(request.args)
+    bills      = _bills_in_period(home_id, start, end)
+    expenses   = _expenses_in_period(home_id, start, end)
+    items      = _items_in_period(home_id, start, end)
+
+    transactions: list[dict] = []
+
+    for b in bills:
+        creator = DB["users"].get(b.get("created_by") or "", {})
+        transactions.append({
+            "id":       b.get("id"),
+            "type":     "bill",
+            "title":    b.get("title", "—"),
+            "category": b.get("category") or "Uncategorised",
+            "date":     b.get("date") or "",
+            "amount":   round(float(b.get("total", 0) or 0), 2),
+            "by_id":    b.get("created_by"),
+            "by_name":  creator.get("name", "—"),
+            "extra":    b.get("split_type") or "",
+        })
+
+    for e in expenses:
+        creator = DB["users"].get(e.get("creator_id") or "", {})
+        transactions.append({
+            "id":       e.get("id"),
+            "type":     "expense",
+            "title":    e.get("title", "—"),
+            "category": e.get("expense_type") or "Expense",
+            "date":     e.get("start_date") or "",
+            "amount":   round(float(e.get("amount", 0) or 0), 2),
+            "by_id":    e.get("creator_id"),
+            "by_name":  creator.get("name", "—"),
+            "extra":    e.get("frequency") or "one-time",
+        })
+
+    for i in items:
+        owner_id = (i.get("owners") or [None])[0]
+        owner    = DB["users"].get(owner_id or "", {})
+        qty      = float(i.get("quantity", 0) or 0)
+        price    = float(i.get("unit_price", 0) or 0)
+        transactions.append({
+            "id":       i.get("id"),
+            "type":     "item",
+            "title":    i.get("name", "—"),
+            "category": i.get("category") or "Uncategorised",
+            "date":     i.get("purchased_on") or "",
+            "amount":   _item_total(i),
+            "by_id":    owner_id,
+            "by_name":  owner.get("name", "—"),
+            "extra":    f"qty {qty:g} × ${price:.2f}",
+        })
+
+    transactions.sort(key=lambda r: r["date"], reverse=True)
+    total = len(transactions)
+
+    return jsonify({
+        "transactions": transactions[:per_page],
+        "total":        total,
         "period": {"start_date": start, "end_date": end},
     }), 200
 
@@ -310,6 +444,7 @@ def export_csv(home_id):
     start, end = _parse_period(request.args)
     bills      = _bills_in_period(home_id, start, end)
     expenses   = _expenses_in_period(home_id, start, end)
+    items      = _items_in_period(home_id, start, end)
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -333,6 +468,18 @@ def export_csv(home_id):
             e.get("expense_type", ""),
             f"{e.get('amount', 0):.2f}",
             e.get("frequency") or "one-time",
+        ])
+
+    for i in sorted(items, key=lambda x: x.get("purchased_on", ""), reverse=True):
+        qty   = float(i.get("quantity", 0) or 0)
+        price = float(i.get("unit_price", 0) or 0)
+        writer.writerow([
+            i.get("purchased_on", ""),
+            "Item",
+            i.get("name", ""),
+            i.get("category", ""),
+            f"{_item_total(i):.2f}",
+            f"qty {qty:g} × ${price:.2f}",
         ])
 
     csv_bytes = output.getvalue().encode("utf-8")
@@ -368,6 +515,7 @@ def export_xlsx(home_id):
     start, end = _parse_period(request.args)
     bills      = _bills_in_period(home_id, start, end)
     expenses   = _expenses_in_period(home_id, start, end)
+    items      = _items_in_period(home_id, start, end)
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -410,6 +558,19 @@ def export_xlsx(home_id):
         ])
         row_num += 1
 
+    for i in sorted(items, key=lambda x: x.get("purchased_on", ""), reverse=True):
+        qty   = float(i.get("quantity", 0) or 0)
+        price = float(i.get("unit_price", 0) or 0)
+        ws.append([
+            i.get("purchased_on", ""),
+            "Item",
+            i.get("name", ""),
+            i.get("category", ""),
+            _item_total(i),
+            f"qty {qty:g} × ${price:.2f}",
+        ])
+        row_num += 1
+
     # ── Summary sheet ─────────────────────────────────────────────────────
     ws2 = wb.create_sheet("Summary")
     ws2.append(["Metric", "Value"])
@@ -417,9 +578,12 @@ def export_xlsx(home_id):
     ws2.append(["Period", f"{start} to {end}"])
     ws2.append(["Total Bills", len(bills)])
     ws2.append(["Total Expenses", len(expenses)])
+    ws2.append(["Total Items", len(items)])
+    ws2.append(["Total Transactions", len(bills) + len(expenses) + len(items)])
     ws2.append(["Total Spend ($)", round(
         sum(b.get("total", 0) for b in bills) +
-        sum(e.get("amount", 0) for e in expenses), 2
+        sum(e.get("amount", 0) for e in expenses) +
+        sum(_item_total(i) for i in items), 2
     )])
 
     # Auto-width columns (main sheet)

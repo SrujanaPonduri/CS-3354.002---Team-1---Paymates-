@@ -7,7 +7,7 @@
 
 # Flask imports for defining routes and handling JSON requests/responses
 from flask import Blueprint, jsonify, request
-from mock_db import DB, new_id
+from mock_db import DB, adjust_budget_spent, new_id
 
 bills_bp = Blueprint("bills", __name__)
 
@@ -206,6 +206,7 @@ def create_bill():
         return jsonify({"error": str(exc)}), 400
 
     DB["bills"][bill_id] = bill
+    adjust_budget_spent(home_id, category, total)
     return jsonify({"bill": bill, "dues": dues}), 201
 
 
@@ -234,6 +235,9 @@ def update_bill(bill_id):
     if editor_id != bill["created_by"]:
         return jsonify({"error": "Only the bill creator can edit this bill"}), 403
 
+    old_category = bill.get("category") or ""
+    old_total = float(bill.get("total", 0) or 0)
+
     # Apply partial field updates
     updatable = ("title", "date", "category", "split_type",
                  "items", "tax", "assigned_roommates")
@@ -256,6 +260,12 @@ def update_bill(bill_id):
             )
         except ValueError as exc:
             return jsonify({"error": str(exc)}), 400
+
+    new_category = bill.get("category") or ""
+    new_total = float(bill.get("total", 0) or 0)
+    if old_category != new_category or old_total != new_total:
+        adjust_budget_spent(bill["home_id"], old_category, -old_total)
+        adjust_budget_spent(bill["home_id"], new_category, new_total)
 
     return jsonify({"bill": bill}), 200
 

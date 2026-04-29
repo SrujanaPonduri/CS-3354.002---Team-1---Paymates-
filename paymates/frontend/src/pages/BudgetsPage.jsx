@@ -1,5 +1,5 @@
 // src/pages/BudgetsPage.jsx
-// UC-12: Create/Manage Budget (frontend — previously missing)
+// UC-12: Create/Manage Budget (frontend)
 // FR-04: Add a Budget to a Home
 // FR-05: Create Budgets for various categories
 // FR-06: Add a balance to a Budget
@@ -190,21 +190,31 @@ function AddBudgetModal({ homeId, creatorId, onClose, onSuccess }) {
   );
 }
 
-function AddBalanceModal({ budget, onClose, onSuccess }) {
-  const [amount, setAmount] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError]   = useState('');
+// Edit Budget modal — allows updating amount, visibility, and period
+function EditBudgetModal({ budget, onClose, onSuccess }) {
+  const [amount, setAmount]         = useState(String(budget.budget_amount || ''));
+  const [visibility, setVisibility] = useState(budget.visibility || 'all');
+  const [month, setMonth]           = useState(budget.month || new Date().getMonth() + 1);
+  const [year, setYear]             = useState(budget.year || new Date().getFullYear());
+  const [saving, setSaving]         = useState(false);
+  const [error, setError]           = useState('');
 
   const handleSubmit = async () => {
     setError('');
     const amt = parseFloat(amount);
-    if (isNaN(amt) || amt === 0) { setError('Enter a valid amount.'); return; }
+    if (isNaN(amt) || amt <= 0) { setError('Amount must be a positive number.'); return; }
+
     setSaving(true);
     try {
-      await client.patch(`/budgets/${budget.id}/add-balance`, { amount: amt });
+      await client.patch(`/budgets/${budget.id}/edit`, {
+        budget_amount: amt,
+        visibility,
+        month,
+        year,
+      });
       onSuccess();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to update balance.');
+      setError(err.response?.data?.error || 'Failed to update budget.');
     } finally {
       setSaving(false);
     }
@@ -212,30 +222,72 @@ function AddBalanceModal({ budget, onClose, onSuccess }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '380px' }}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h2 className="modal-title" style={{ marginBottom: 0 }}>Add to Balance</h2>
+          <h2 className="modal-title" style={{ marginBottom: 0 }}>Edit Budget</h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
         <p className="text-muted" style={{ marginBottom: '1rem' }}>
-          Updating: <strong>{budget.category}</strong> budget
+          Editing: <strong>{budget.category}</strong>
         </p>
         <ErrorBanner message={error} onDismiss={() => setError('')} />
+
         <div className="form-group">
-          <label className="form-label">Amount ($)</label>
+          <label className="form-label">Budget Amount ($) *</label>
           <input
             className="form-input"
             type="number"
+            min="0.01"
             step="0.01"
-            placeholder="e.g. 50.00 (negative to subtract)"
+            placeholder="e.g. 300.00"
             value={amount}
             onChange={e => setAmount(e.target.value)}
           />
         </div>
+
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label className="form-label">Month</label>
+            <select className="form-select" value={month} onChange={e => setMonth(Number(e.target.value))}>
+              {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => (
+                <option key={i} value={i + 1}>{m}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label className="form-label">Year</label>
+            <input
+              className="form-input"
+              type="number"
+              min="2020"
+              max="2030"
+              value={year}
+              onChange={e => setYear(Number(e.target.value))}
+            />
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Visibility</label>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {VISIBILITY_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`btn btn-sm ${visibility === opt.value ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ flex: 1 }}
+                onClick={() => setVisibility(opt.value)}
+              >
+                {opt.icon} {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="modal-actions">
           <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
           <button className="btn btn-success" style={{ flex: 1 }} onClick={handleSubmit} disabled={saving}>
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
       </div>
@@ -250,7 +302,7 @@ export default function BudgetsPage() {
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState('');
   const [showAdd, setShowAdd]       = useState(false);
-  const [balanceTarget, setBalanceTarget] = useState(null);
+  const [editTarget, setEditTarget] = useState(null);
 
   const fetchBudgets = useCallback(async () => {
     setLoading(true);
@@ -266,7 +318,6 @@ export default function BudgetsPage() {
 
   useEffect(() => { fetchBudgets(); }, [fetchBudgets]);
 
-  // Aggregate stats
   const totalBudget  = budgets.reduce((s, b) => s + (b.budget_amount || 0), 0);
   const totalSpent   = budgets.reduce((s, b) => s + (b.current_balance || 0), 0);
   const overCount    = budgets.filter(b => (b.current_balance || 0) > (b.budget_amount || 0)).length;
@@ -286,7 +337,6 @@ export default function BudgetsPage() {
 
       <ErrorBanner message={error} onDismiss={() => setError('')} />
 
-      {/* Summary bar */}
       {budgets.length > 0 && (
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
           <div className="card" style={{ flex: 1, minWidth: '160px' }}>
@@ -378,7 +428,6 @@ export default function BudgetsPage() {
                   </div>
                 </div>
 
-                {/* Progress bar */}
                 <div style={{ marginTop: '0.75rem', height: '8px', background: 'var(--surface-3)', borderRadius: '99px', overflow: 'hidden' }}>
                   <div style={{
                     height: '100%',
@@ -393,9 +442,9 @@ export default function BudgetsPage() {
                   <button
                     className="btn btn-ghost btn-sm"
                     style={{ fontSize: '11px', padding: '2px 10px', height: 'auto' }}
-                    onClick={() => setBalanceTarget(budget)}
+                    onClick={() => setEditTarget(budget)}
                   >
-                    + Add Spending
+                    ✏ Edit Budget
                   </button>
                 </div>
               </div>
@@ -413,11 +462,11 @@ export default function BudgetsPage() {
         />
       )}
 
-      {balanceTarget && (
-        <AddBalanceModal
-          budget={balanceTarget}
-          onClose={() => setBalanceTarget(null)}
-          onSuccess={() => { setBalanceTarget(null); fetchBudgets(); }}
+      {editTarget && (
+        <EditBudgetModal
+          budget={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSuccess={() => { setEditTarget(null); fetchBudgets(); }}
         />
       )}
     </div>

@@ -5,9 +5,17 @@
 # UC07 - Kavya Seenuvasan 
 
 from flask import Blueprint, jsonify, request
-from mock_db import DB, new_id
+from mock_db import DB, adjust_budget_spent, new_id
 
 items_bp = Blueprint("items", __name__)
+
+
+def _item_total(item: dict) -> float:
+    try:
+        return round(float(item.get("quantity", 0) or 0)
+                     * float(item.get("unit_price", 0) or 0), 2)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -104,7 +112,72 @@ def add_item(home_id):
         "purchased_on": purchased_on,
     }
     DB["items"][item_id] = item
+    adjust_budget_spent(home_id, category, _item_total(item))
     return jsonify({"item": item}), 201
+
+
+# ---------------------------------------------------------------------------
+# UC07 — Update an inventory item
+# ---------------------------------------------------------------------------
+# PUT /api/items/<item_id>
+# Body: { requester_id, name?, category?, quantity?, unit_price?, purchased_on? }
+@items_bp.route("/items/<item_id>", methods=["PUT"])
+def update_item(item_id):
+    """Update inventory item fields and keep category budget spending in sync."""
+    item = DB["items"].get(item_id)
+    if not item:
+        return jsonify({"error": "Item not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    requester_id = (data.get("requester_id") or "").strip()
+
+    if not requester_id:
+        return jsonify({"error": "requester_id is required"}), 400
+
+    home = DB["homes"].get(item["home_id"])
+    if not home or requester_id not in home["roommate_ids"]:
+        return jsonify({"error": "You are not a member of this home"}), 403
+
+    old_category = item.get("category") or ""
+    old_total = _item_total(item)
+
+    if "name" in data:
+        name = (data.get("name") or "").strip()
+        if not name:
+            return jsonify({"error": "name is required"}), 400
+        item["name"] = name
+
+    if "category" in data:
+        item["category"] = (data.get("category") or "").strip()
+
+    if "quantity" in data:
+        try:
+            quantity = float(data.get("quantity"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "quantity must be a number"}), 400
+        if quantity <= 0:
+            return jsonify({"error": "quantity must be greater than zero"}), 400
+        item["quantity"] = quantity
+
+    if "unit_price" in data:
+        try:
+            unit_price = float(data.get("unit_price"))
+        except (TypeError, ValueError):
+            return jsonify({"error": "unit_price must be a number"}), 400
+        if unit_price < 0:
+            return jsonify({"error": "unit_price must be zero or greater"}), 400
+        item["unit_price"] = unit_price
+
+    if "purchased_on" in data:
+        item["purchased_on"] = (data.get("purchased_on") or "").strip()
+
+    new_category = item.get("category") or ""
+    new_total = _item_total(item)
+    if old_category != new_category or old_total != new_total:
+        adjust_budget_spent(item["home_id"], old_category, -old_total)
+        adjust_budget_spent(item["home_id"], new_category, new_total)
+
+    return jsonify({"item": item}), 200
 
 
 # ---------------------------------------------------------------------------
@@ -237,5 +310,6 @@ def delete_item(item_id):
     if not home or requester_id not in home["roommate_ids"]:
         return jsonify({"error": "You are not a member of this home"}), 403
 
+    adjust_budget_spent(item["home_id"], item.get("category") or "", -_item_total(item))
     DB["items"].pop(item_id, None)
     return jsonify({"deleted": True, "message": "Item deleted successfully"}), 200
