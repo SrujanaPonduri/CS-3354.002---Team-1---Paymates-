@@ -125,7 +125,7 @@ def _category_totals(bills: list, expenses: list,
     for b in bills:
         totals[b.get("category") or "Uncategorised"] += b.get("total", 0)
     for e in expenses:
-        totals[e.get("title") or "Expense"] += e.get("amount", 0)
+        totals[e.get("category") or e.get("title") or "Uncategorised"] += e.get("amount", 0)
     for i in (items or []):
         totals[i.get("category") or "Uncategorised"] += _item_total(i)
     return dict(totals)
@@ -283,7 +283,7 @@ def budget_vs_actual(home_id):
     for b in bills:
         actual[b.get("category") or "Uncategorised"] += b.get("total", 0)
     for e in expenses:
-        actual[e.get("title") or "Expense"] += e.get("amount", 0)
+        actual[e.get("category") or e.get("title") or "Uncategorised"] += e.get("amount", 0)
     for i in items:
         actual[i.get("category") or "Uncategorised"] += _item_total(i)
 
@@ -396,7 +396,7 @@ def audit_transactions(home_id):
             "id":       e.get("id"),
             "type":     "expense",
             "title":    e.get("title", "—"),
-            "category": e.get("expense_type") or "Expense",
+            "category": e.get("category") or e.get("expense_type") or "Expense",
             "date":     e.get("start_date") or "",
             "amount":   round(float(e.get("amount", 0) or 0), 2),
             "by_id":    e.get("creator_id"),
@@ -465,7 +465,7 @@ def export_csv(home_id):
             e.get("start_date", ""),
             "Expense",
             e.get("title", ""),
-            e.get("expense_type", ""),
+            e.get("category") or e.get("expense_type", ""),
             f"{e.get('amount', 0):.2f}",
             e.get("frequency") or "one-time",
         ])
@@ -552,7 +552,7 @@ def export_xlsx(home_id):
             e.get("start_date", ""),
             "Expense",
             e.get("title", ""),
-            e.get("expense_type", ""),
+            e.get("category") or e.get("expense_type", ""),
             round(e.get("amount", 0), 2),
             e.get("frequency") or "one-time",
         ])

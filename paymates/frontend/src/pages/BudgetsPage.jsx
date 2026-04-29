@@ -190,8 +190,10 @@ function AddBudgetModal({ homeId, creatorId, onClose, onSuccess }) {
   );
 }
 
-// Edit Budget modal — allows updating amount, visibility, and period
+// Edit Budget modal — allows updating category, amount, visibility, and period
 function EditBudgetModal({ budget, onClose, onSuccess }) {
+  const [category, setCategory]     = useState(CATEGORY_SUGGESTIONS.includes(budget.category) ? budget.category : '__custom__');
+  const [customCat, setCustomCat]   = useState(CATEGORY_SUGGESTIONS.includes(budget.category) ? '' : (budget.category || ''));
   const [amount, setAmount]         = useState(String(budget.budget_amount || ''));
   const [visibility, setVisibility] = useState(budget.visibility || 'all');
   const [month, setMonth]           = useState(budget.month || new Date().getMonth() + 1);
@@ -199,14 +201,18 @@ function EditBudgetModal({ budget, onClose, onSuccess }) {
   const [saving, setSaving]         = useState(false);
   const [error, setError]           = useState('');
 
+  const effectiveCategory = category === '__custom__' ? customCat : category;
+
   const handleSubmit = async () => {
     setError('');
+    if (!effectiveCategory.trim()) { setError('Category is required.'); return; }
     const amt = parseFloat(amount);
     if (isNaN(amt) || amt <= 0) { setError('Amount must be a positive number.'); return; }
 
     setSaving(true);
     try {
       await client.patch(`/budgets/${budget.id}/edit`, {
+        category: effectiveCategory.trim(),
         budget_amount: amt,
         visibility,
         month,
@@ -227,10 +233,24 @@ function EditBudgetModal({ budget, onClose, onSuccess }) {
           <h2 className="modal-title" style={{ marginBottom: 0 }}>Edit Budget</h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
-        <p className="text-muted" style={{ marginBottom: '1rem' }}>
-          Editing: <strong>{budget.category}</strong>
-        </p>
         <ErrorBanner message={error} onDismiss={() => setError('')} />
+
+        <div className="form-group">
+          <label className="form-label">Category *</label>
+          <select className="form-select" value={category} onChange={e => setCategory(e.target.value)}>
+            {CATEGORY_SUGGESTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+            <option value="__custom__">+ Custom category</option>
+          </select>
+          {category === '__custom__' && (
+            <input
+              className="form-input"
+              style={{ marginTop: '0.5rem' }}
+              placeholder="Type custom category name"
+              value={customCat}
+              onChange={e => setCustomCat(e.target.value)}
+            />
+          )}
+        </div>
 
         <div className="form-group">
           <label className="form-label">Budget Amount ($) *</label>

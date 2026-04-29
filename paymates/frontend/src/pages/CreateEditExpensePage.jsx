@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import client from '../api/client.js';
 import { useHome } from '../context/HomeContext.jsx';
 import ErrorBanner from '../components/ErrorBanner.jsx';
+import { ITEM_CATEGORIES } from '../constants/categories.js';
 
 const FREQUENCIES = ['weekly', 'monthly', 'yearly'];
 
@@ -56,6 +57,7 @@ export default function CreateEditExpensePage() {
   const isEdit               = Boolean(expId);
 
   const [title, setTitle]                   = useState('');
+  const [category, setCategory]             = useState('');
   const [amount, setAmount]                 = useState('');
   const [expenseType, setExpenseType]       = useState('one_time');
   const [frequency, setFrequency]           = useState('monthly');
@@ -86,6 +88,7 @@ export default function CreateEditExpensePage() {
         const exp = r.data.expenses.find(e => e.id === expId);
         if (!exp) return;
         setTitle(exp.title);
+        setCategory(exp.category || '');
         setAmount(exp.amount);
         setExpenseType(exp.expense_type);
         setFrequency(exp.frequency || 'monthly');
@@ -110,6 +113,7 @@ export default function CreateEditExpensePage() {
       creator_id:   currentUser?.id,
       editor_id:    currentUser?.id,
       title:        title.trim(),
+      category:     category.trim(),
       amount:       parseFloat(amount),
       expense_type: expenseType,
       frequency:    expenseType === 'recurring' ? frequency : undefined,
@@ -154,6 +158,14 @@ export default function CreateEditExpensePage() {
         <div className="form-group">
           <label className="form-label">TITLE *</label>
           <input className="form-input" placeholder="e.g. Monthly Rent" value={title} onChange={e => setTitle(e.target.value)} />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">CATEGORY</label>
+          <select className="form-select" value={category} onChange={e => setCategory(e.target.value)}>
+            <option value="">Select a category…</option>
+            {ITEM_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>

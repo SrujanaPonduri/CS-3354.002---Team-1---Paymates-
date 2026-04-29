@@ -96,6 +96,7 @@ def create_expense():
 
     creator_id   = (data.get("creator_id") or "").strip()
     title        = (data.get("title") or "").strip()
+    category     = (data.get("category") or "").strip()
     expense_type = (data.get("expense_type") or "one_time").strip()
     frequency    = (data.get("frequency") or "").strip()
     start_date   = (data.get("start_date") or "").strip()
@@ -129,6 +130,7 @@ def create_expense():
     expense = {
         "id": expense_id,
         "title": title,
+        "category": category,
         "amount": amount,
         "expense_type": expense_type,
         "frequency": frequency or None,
@@ -139,7 +141,7 @@ def create_expense():
         "home_id": home_id,
     }
     DB["expenses"][expense_id] = expense
-    adjust_budget_spent(home_id, title, amount)
+    adjust_budget_spent(home_id, category or title, amount)
 
     dues = _build_expense_dues(expense_id, amount, assigned_to,
                                next_due_date or start_date)
@@ -171,13 +173,14 @@ def update_expense(expense_id):
         return jsonify({"error": "Only an assigned user can edit this expense"}), 403
 
     old_title = expense.get("title") or ""
+    old_category = expense.get("category") or ""
     old_amount = float(expense.get("amount", 0) or 0)
 
     amount_changed = "amount" in data
     new_amount = float(data["amount"]) if amount_changed else expense["amount"]
 
     # Apply partial field updates
-    updatable = ("title", "amount", "expense_type", "frequency",
+    updatable = ("title", "category", "amount", "expense_type", "frequency",
                  "start_date", "assigned_to")
     for field in updatable:
         if field in data:
@@ -198,10 +201,12 @@ def update_expense(expense_id):
                     and due["status"] == "pending"):
                 due["amount"] = per_person
 
+    new_category = expense.get("category") or ""
     new_title = expense.get("title") or ""
     new_total = float(expense.get("amount", 0) or 0)
-    if old_title != new_title or old_amount != new_total:
-        adjust_budget_spent(expense["home_id"], old_title, -old_amount)
-        adjust_budget_spent(expense["home_id"], new_title, new_total)
+    # Reverse old budget spend and apply new one (use category when set, else title)
+    if old_category != new_category or old_amount != new_total:
+        adjust_budget_spent(expense["home_id"], old_category or old_title, -old_amount)
+        adjust_budget_spent(expense["home_id"], new_category or new_title, new_total)
 
     return jsonify({"expense": expense}), 200
