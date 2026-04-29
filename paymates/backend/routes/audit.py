@@ -661,12 +661,42 @@ def create_budget(home_id):
 # GET /api/homes/<home_id>/budgets
 @audit_bp.route("/homes/<home_id>/budgets", methods=["GET"])
 def list_budgets(home_id):
-    """FR-04/05: List all budgets for a home."""
+    """FR-04/05: List all budgets for a home with live-computed current_balance.
+
+    Dynamically sums bills + expenses + items by category so the budget page
+    always reflects real spending rather than a cached value.
+    """
     if home_id not in DB["homes"]:
         return jsonify({"error": "Home not found"}), 404
 
-    home_budgets = [b for b in DB["budgets"].values() if b["home_id"] == home_id]
-    return jsonify({"budgets": home_budgets}), 200
+    def _compute_spent(category: str) -> float:
+        cat = (category or "").strip().lower()
+        total = 0.0
+        for bill in DB["bills"].values():
+            if bill.get("home_id") == home_id:
+                if (bill.get("category") or "").strip().lower() == cat:
+                    total += float(bill.get("total", 0) or 0)
+        for expense in DB["expenses"].values():
+            if expense.get("home_id") == home_id:
+                if (expense.get("category") or "").strip().lower() == cat:
+                    total += float(expense.get("amount", 0) or 0)
+        for item in DB["items"].values():
+            if item.get("home_id") == home_id:
+                if (item.get("category") or "").strip().lower() == cat:
+                    qty   = float(item.get("quantity", 0) or 0)
+                    price = float(item.get("unit_price", 0) or 0)
+                    total += qty * price
+        return round(total, 2)
+
+    result = []
+    for budget in DB["budgets"].values():
+        if budget.get("home_id") != home_id:
+            continue
+        b = dict(budget)
+        b["current_balance"] = _compute_spent(b.get("category") or "")
+        result.append(b)
+
+    return jsonify({"budgets": result}), 200
 
 
 # PATCH /api/budgets/<budget_id>/add-balance
