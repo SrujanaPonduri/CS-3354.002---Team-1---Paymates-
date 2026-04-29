@@ -11,6 +11,29 @@ def new_id() -> str:
     return str(uuid.uuid4())
 
 
+def adjust_budget_spent(home_id: str, category: str, amount_delta: float) -> None:
+    """Apply a spending delta to matching budgets for a home/category."""
+    if not home_id or not category:
+        return
+
+    normalized_category = category.strip().lower()
+    if not normalized_category:
+        return
+
+    try:
+        delta = float(amount_delta)
+    except (TypeError, ValueError):
+        return
+
+    for budget in DB["budgets"].values():
+        if budget.get("home_id") != home_id:
+            continue
+        if (budget.get("category") or "").strip().lower() != normalized_category:
+            continue
+        current = float(budget.get("current_balance", 0.0) or 0.0)
+        budget["current_balance"] = round(max(0.0, current + delta), 2)
+
+
 # ---------------------------------------------------------------------------
 # In-memory database
 # ---------------------------------------------------------------------------

@@ -182,7 +182,7 @@ export default function AuditPage() {
   const [summary, setSummary]         = useState(null);
   const [trends, setTrends]           = useState([]);
   const [budgetVsActual, setBva]      = useState(null);
-  const [txHistory, setTxHistory]     = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading]         = useState(true);
   const [exporting, setExporting]     = useState('');
   const [error, setError]             = useState('');
@@ -191,16 +191,16 @@ export default function AuditPage() {
     setLoading(true);
     setError('');
     try {
-      const [sumRes, trendsRes, bvaRes, histRes] = await Promise.all([
+      const [sumRes, trendsRes, bvaRes, txRes] = await Promise.all([
         client.get(`/homes/${homeId}/audit/summary?period=${period}`),
         client.get(`/homes/${homeId}/audit/trends?period=${period}`),
         client.get(`/homes/${homeId}/audit/budget-vs-actual?period=${period}`),
-        client.get(`/homes/${homeId}/history?per_page=10`),
+        client.get(`/homes/${homeId}/audit/transactions?period=${period}&per_page=10`),
       ]);
       setSummary(sumRes.data);
       setTrends(trendsRes.data.trends || []);
       setBva(bvaRes.data);
-      setTxHistory(histRes.data.history || []);
+      setTransactions(txRes.data.transactions || []);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to load audit data.');
     } finally {
@@ -278,11 +278,14 @@ export default function AuditPage() {
               {[
                 { label: 'Total Spending', value: `$${summary.total_spending?.toFixed(2) || '0.00'}`, color: 'var(--accent)' },
                 { label: 'Budget Used', value: budgetVsActual?.total_budget > 0
-                    ? `${Math.round((budgetVsActual.total_spent / budgetVsActual.total_budget) * 100)}%`
+                    ? `${Math.round((budgetVsActual.budgeted_actual_spent / budgetVsActual.total_budget) * 100)}%`
                     : '—',
+                  sub: budgetVsActual?.total_budget > 0
+                    ? `$${budgetVsActual.budgeted_actual_spent?.toFixed(2) || '0.00'} / $${budgetVsActual.total_budget.toFixed(2)}`
+                    : '',
                   color: 'var(--warning)' },
                 { label: 'Top Category', value: summary.top_category || '—', sub: summary.top_category ? `$${summary.top_category_amount?.toFixed(2)} · ${summary.top_category_pct}%` : '' },
-                { label: 'Total Expenses', value: `${(summary.total_bills || 0) + (summary.total_expenses || 0)}`, sub: `${summary.total_bills || 0} bills · ${summary.total_expenses || 0} expenses` },
+                { label: 'Total Transactions', value: `${summary.total_transactions ?? ((summary.total_bills || 0) + (summary.total_expenses || 0) + (summary.total_items || 0))}`, sub: `${summary.total_bills || 0} bills · ${summary.total_expenses || 0} expenses · ${summary.total_items || 0} items` },
               ].map((card, i) => (
                 <div key={i} className="card" style={{ flex: 1, minWidth: '160px' }}>
                   <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.4rem' }}>{card.label}</p>
@@ -365,43 +368,56 @@ export default function AuditPage() {
           )}
 
           {/* Transaction history table */}
-          {txHistory.length > 0 && (
+          {transactions.length > 0 && (
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h3 style={{ fontWeight: 700, fontSize: '15px' }}><HistoryIcon /> Transaction History</h3>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Recent resolved payments</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Bills, expenses and inventory items</span>
               </div>
               <div className="table-wrap" style={{ margin: 0 }}>
                 <table>
                   <thead>
                     <tr>
                       <th>DESCRIPTION</th>
+                      <th>TYPE</th>
                       <th>CATEGORY</th>
                       <th>DATE</th>
-                      <th>PAID BY</th>
+                      <th>BY</th>
                       <th style={{ textAlign: 'right' }}>AMOUNT</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {txHistory.map((rec, i) => (
-                      <tr key={i}>
-                        <td style={{ fontWeight: 600 }}>{rec.source_title}</td>
-                        <td>
-                          {rec.source_category ? (
-                            <span className="badge badge-blue">{rec.source_category}</span>
-                          ) : (
-                            <span className={`badge ${rec.source_type === 'bill' ? 'badge-orange' : 'badge-blue'}`}>
-                              {rec.source_type === 'bill' ? 'Bill' : 'Expense'}
-                            </span>
-                          )}
-                        </td>
-                        <td className="text-muted">{rec.due_date || '—'}</td>
-                        <td>{rec.user_name}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--accent)' }}>
-                          ${rec.amount?.toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
+                    {transactions.map((tx, i) => {
+                      const typeBadge = tx.type === 'bill'
+                        ? 'badge-orange'
+                        : tx.type === 'expense'
+                        ? 'badge-blue'
+                        : 'badge-green';
+                      const typeLabel = tx.type === 'bill'
+                        ? 'Bill'
+                        : tx.type === 'expense'
+                        ? 'Expense'
+                        : 'Item';
+                      return (
+                        <tr key={`${tx.type}-${tx.id || i}`}>
+                          <td style={{ fontWeight: 600 }}>
+                            {tx.title}
+                            {tx.extra && (
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400, marginTop: '2px' }}>
+                                {tx.extra}
+                              </div>
+                            )}
+                          </td>
+                          <td><span className={`badge ${typeBadge}`}>{typeLabel}</span></td>
+                          <td>{tx.category ? <span className="badge badge-blue">{tx.category}</span> : <span className="text-dim">—</span>}</td>
+                          <td className="text-muted">{tx.date || '—'}</td>
+                          <td>{tx.by_name || '—'}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--accent)' }}>
+                            ${tx.amount?.toFixed(2)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
